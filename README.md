@@ -1,70 +1,62 @@
-# Getting Started with Create React App
+# 🌟 Evolua - Gestão Pessoal (Protótipo)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**Evolua** é um **protótipo de SaaS de Gestão Pessoal**, desenvolvido para centralizar em um único sistema diversas áreas da vida: **finanças, investimentos, saúde e organização pessoal**.  
 
-## Available Scripts
+O objetivo é oferecer uma plataforma **simples, responsiva e inteligente**, ajudando o usuário a **evoluir** em diferentes áreas do dia a dia.  
+> ⚠️ **Atenção:** Este projeto ainda é apenas um **protótipo**. Novas funcionalidades estão sendo avaliadas e implementadas gradualmente.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## 🚀 Tecnologias utilizadas
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Frontend**: [React](https://react.dev/) + [React Router](https://reactrouter.com/)  
+- **Banco de Dados**: Implementação inicial baseada Supabase
+- **Autenticação**: Estrutura básica (integração com Supabase)  
+- **Responsividade**: Mobile-first, adaptado para diferentes telas  
+- **Inteligência Artificial**: Planejamento para dicas inteligentes utilizando APIs gratuitas  
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## 📱 Funcionalidades atuais (Protótipo)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 🔑 Autenticação
+- Cadastro e login de usuário (base inicial)  
+- Edição de perfil  
 
-### `npm run build`
+### 💰 Financeiro
+- Registro de receitas e despesas  
+- Acompanhamento simples de saldo  
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 📈 Investimentos
+- Visualização de investimentos cadastrados  
+- Acompanhamento básico  
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 🏋️ Saúde
+- Planejamento inicial de dieta  
+- Registro de treinos  
+- Marcação de calorias 
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## 🔮 Futuras Funcionalidades
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- Dashboard com **gráficos e relatórios** (finanças, investimentos e saúde)  
+- Integração com **bancos de dados reais**  
+- **Autenticação avançada** com provedores externos  
+- **Dicas com IA** para saúde, finanças e produtividade  
+- Sistema de **notificações e lembretes**  
+- Integração com **wearables** (smartwatches, apps de treino e dieta)  
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+---
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 🎯 Objetivos do Projeto
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- Criar um **SaaS de gestão pessoal** acessível e inteligente  
+- Aprender e aplicar conceitos de:
+  - **Frontend com React**  
+  - **Gerenciamento de rotas com React Router**  
+  - **Banco de dados e autenticação**  
+  - **Responsividade mobile-first**  
+  - **Integração com IA**  
 
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
