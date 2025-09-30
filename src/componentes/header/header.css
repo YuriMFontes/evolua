@@ -1,16 +1,20 @@
 .header{
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
     justify-content: space-between;
-    text-align: left;
-    padding: 8px 16px;
+    padding: 10px 20px;
+    align-items: center;
+    box-shadow: 0 2px 4px black;
+    background-color: #ffff;
 }
 .perfil{
     display: flex;
-    align-items: center;
-    gap: 12px;
+    gap: 15px;
 }
-.img-perfil{
-    border-radius: 50%;
-    object-fit: cover;
+
+.title{
+    font-size: 24px;
+    font-weight: bold;
+    text-decoration: none;
+    color: black;
 }
