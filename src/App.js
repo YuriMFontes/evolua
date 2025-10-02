@@ -1,11 +1,9 @@
-import Header from './componentes/header/header';
-import Sidebar from './componentes/side-bar/side-bar';
+import Dashboard from './pages/dashboard/dashboard';
 
 function App() {
   return (
     <div className="App">
-        <Header/>
-        <Sidebar/>
+        <Dashboard/>
     </div>
   );
 }

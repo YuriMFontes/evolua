@@ -6,6 +6,12 @@
     align-items: center;
     box-shadow: 0 2px 4px black;
     background-color: #ffff;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1001;
+    height: 60px;
 }
 .perfil{
     display: flex;
@@ -17,4 +23,32 @@
     font-weight: bold;
     text-decoration: none;
     color: black;
+}
+.hamburger{
+    display: none;
+}
+
+/* Responsividade */
+@media screen and (max-width: 1000px){
+    .header{
+        display: flex;
+        flex-wrap: nowrap;
+        padding: 10px 20px;
+        box-shadow: 0 2px 4px black;
+        background-color: #ffff;
+    }
+    .perfil{
+        display: none;
+    }
+    .title{
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .hamburger{
+        display: flex;
+        font-size: 34px;
+        cursor: pointer;
+    }
 }
