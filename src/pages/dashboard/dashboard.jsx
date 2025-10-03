@@ -29,6 +29,24 @@ export default function Dashboard(){
                         </div>
                     </section>
                 </div>
+                <div className="dashboard-info">
+                    <div className="dashboard-container">
+                        <h1 className="dashboard-container-title">Distribuição de Despesas</h1>
+                        <p>Gráfico principal aqui</p>
+                    </div>
+                    <div className="dashboard-container">
+                        <h1 className="dashboard-container-title">Últimas transações</h1>
+                        <p>Resumo aqui</p>
+                    </div>
+                    <div className="dashboard-container-saude">
+                        <h1 className="dashboard-container-title">Saúde</h1>
+                        <p>Metas aqui</p>
+                    </div>
+                    <div className="dashboard-container-saude">
+                        <h1 className="dashboard-container-title">Investimentos</h1>
+                        <p>Metas aqui</p>
+                    </div>
+                </div>
             </div>
        </main>  
     );
