@@ -1,54 +1,97 @@
-.header{
+.header {
     display: flex;
-    flex-wrap: wrap;
     justify-content: space-between;
-    padding: 10px 20px;
     align-items: center;
-    box-shadow: 0 2px 4px black;
-    background-color: #ffff;
+    padding: 12px 28px;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    z-index: 1001;
     height: 60px;
+    z-index: 1001;
+    
+    /* Glass + gradiente suave */
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(245, 248, 255, 0.85));
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(200, 200, 255, 0.3);
+    box-shadow: 0 4px 20px rgba(90, 120, 255, 0.08);
+    
+    transition: all 0.3s ease;
 }
-.perfil{
+
+.title {
+    font-size: 24px;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: -0.5px;
+    color: #111;
+    background: linear-gradient(90deg, #4a6cf7, #9b5de5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: transform 0.2s ease;
+}
+
+.title:hover {
+    transform: scale(1.03);
+}
+
+.perfil {
     display: flex;
+    align-items: center;
     gap: 15px;
 }
 
-.title{
-    font-size: 24px;
-    font-weight: bold;
-    text-decoration: none;
-    color: black;
+.perfil img {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2px solid rgba(120, 140, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(90, 120, 255, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.hamburger{
+
+.perfil img:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(90, 120, 255, 0.2);
+}
+
+/* Botão hamburger (mobile) */
+.hamburger {
     display: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #4a6cf7;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.hamburger:hover {
+    transform: scale(1.1);
+    color: #9b5de5;
 }
 
 /* Responsividade */
-@media screen and (max-width: 1000px){
-    .header{
-        display: flex;
+@media screen and (max-width: 1000px) {
+    .header {
         flex-wrap: nowrap;
         padding: 10px 20px;
-        box-shadow: 0 2px 4px black;
-        background-color: #ffff;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
     }
-    .perfil{
+
+    .perfil {
         display: none;
     }
-    .title{
+
+    .title {
         flex: 1;
         display: flex;
         justify-content: center;
         align-items: center;
+        font-size: 22px;
     }
-    .hamburger{
+
+    .hamburger {
         display: flex;
-        font-size: 34px;
-        cursor: pointer;
+        font-size: 32px;
     }
 }
