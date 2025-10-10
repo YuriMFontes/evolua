@@ -1,19 +1,23 @@
 import "./side-bar.css"
+import { Link } from "react-router-dom"
 
 export default function Sidebar(){
     return(
         <aside className="side-bar">
             <section className="section">
-                <a href="/financeiro">Financeiro</a>
+                <Link to="/dashboard">Dashboard</Link>
             </section>
             <section className="section">
-                <a href="/investimento">Investimento</a>
+                <Link to="/financeiro">Financeiro</Link>
             </section>
             <section className="section">
-                <a href="/saude">Saúde</a>
+                <Link to="/investimento">Investimento</Link>
             </section>
             <section className="section">
-                <a href="/configuracao">Configuração</a>
+                <Link to="/saude">Saúde</Link>
+            </section>
+            <section className="section">
+                <Link to="/configuracao">Configuração</Link>
             </section>
         </aside>
     );
