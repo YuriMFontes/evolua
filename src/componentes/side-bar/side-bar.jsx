@@ -4,21 +4,21 @@ import { Link } from "react-router-dom"
 export default function Sidebar(){
     return(
         <aside className="side-bar">
-            <section className="section">
-                <Link to="/dashboard">Dashboard</Link>
-            </section>
-            <section className="section">
-                <Link to="/financeiro">Financeiro</Link>
-            </section>
-            <section className="section">
-                <Link to="/investimento">Investimento</Link>
-            </section>
-            <section className="section">
-                <Link to="/saude">Saúde</Link>
-            </section>
-            <section className="section">
-                <Link to="/configuracao">Configuração</Link>
-            </section>
+            <Link to="/dashboard" className="section">
+                Dashboard
+            </Link>
+            <Link to="/financeiro" className="section">
+                Financeiro
+            </Link>
+            <Link to="/investimento" className="section">
+                Investimento
+            </Link>
+            <Link to="/saude" className="section">
+                Saúde
+            </Link>
+            <Link to="/configuracao" className="section">
+                Configuração
+            </Link>
         </aside>
     );
 }
