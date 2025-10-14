@@ -3,6 +3,8 @@ import Financeiro from './pages/financeiro/financeiro';
 import Investimento from './pages/investimento/investimento';
 import Saude from './pages/saude/saude';
 import Configuracao from './pages/configuracao/configuracao';
+import Login from './pages/auth/login';
+import Register from './pages/auth/register';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 function App() {
@@ -10,6 +12,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/financeiro" element={<Financeiro />} />
         <Route path="/investimento" element={<Investimento />} />
