@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import './auth.css';
 
 export default function Register() {
@@ -9,18 +10,51 @@ export default function Register() {
         password: '',
         confirmPassword: ''
     });
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    
+    const { signUp } = useAuth();
+    const navigate = useNavigate();
 
     const handleChange = (e) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
         });
+        setError('');
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Register data:', formData);
-        // Aqui você pode adicionar a lógica de registro depois
+        setLoading(true);
+        setError('');
+
+        if (formData.password !== formData.confirmPassword) {
+            setError('As senhas não coincidem');
+            setLoading(false);
+            return;
+        }
+
+        if (formData.password.length < 6) {
+            setError('A senha deve ter pelo menos 6 caracteres');
+            setLoading(false);
+            return;
+        }
+
+        const result = await signUp(formData.email, formData.password, {
+            name: formData.name
+        });
+        
+        if (result.success) {
+            setError('Conta criada com sucesso! Verifique seu email para confirmar.');
+            setTimeout(() => {
+                navigate('/login');
+            }, 2000);
+        } else {
+            setError(result.message);
+        }
+        
+        setLoading(false);
     };
 
     return (
@@ -39,6 +73,12 @@ export default function Register() {
                     </div>
 
                     <form className="auth-form" onSubmit={handleSubmit}>
+                        {error && (
+                            <div className="auth-error">
+                                {error}
+                            </div>
+                        )}
+                        
                         <div className="auth-input-group">
                             <label htmlFor="name" className="auth-label">Nome completo</label>
                             <input
@@ -50,6 +90,7 @@ export default function Register() {
                                 className="auth-input"
                                 placeholder="Seu nome completo"
                                 required
+                                disabled={loading}
                             />
                         </div>
 
@@ -64,6 +105,7 @@ export default function Register() {
                                 className="auth-input"
                                 placeholder="seu@email.com"
                                 required
+                                disabled={loading}
                             />
                         </div>
 
@@ -78,6 +120,7 @@ export default function Register() {
                                 className="auth-input"
                                 placeholder="••••••••"
                                 required
+                                disabled={loading}
                             />
                         </div>
 
@@ -92,19 +135,20 @@ export default function Register() {
                                 className="auth-input"
                                 placeholder="••••••••"
                                 required
+                                disabled={loading}
                             />
                         </div>
 
                         <div className="auth-options">
                             <label className="auth-checkbox">
-                                <input type="checkbox" required />
+                                <input type="checkbox" required disabled={loading} />
                                 <span className="auth-checkmark"></span>
                                 Aceito os <a href="#" className="auth-link">Termos de Uso</a> e <a href="#" className="auth-link">Política de Privacidade</a>
                             </label>
                         </div>
 
-                        <button type="submit" className="auth-button">
-                            Criar conta
+                        <button type="submit" className="auth-button" disabled={loading}>
+                            {loading ? 'Criando conta...' : 'Criar conta'}
                         </button>
                     </form>
 

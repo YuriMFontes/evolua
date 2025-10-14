@@ -5,23 +5,61 @@ import Saude from './pages/saude/saude';
 import Configuracao from './pages/configuracao/configuracao';
 import Login from './pages/auth/login';
 import Register from './pages/auth/register';
+import ProtectedRoute from './components/ProtectedRoute';
+import PublicRoute from './components/PublicRoute';
+import { AuthProvider } from './contexts/AuthContext';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/financeiro" element={<Financeiro />} />
-        <Route path="/investimento" element={<Investimento />} />
-        <Route path="/saude" element={<Saude />} />
-        <Route path="/configuracao" element={<Configuracao />} />
-        <Route path="*" element={<div>Página não encontrada</div>} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          
+          {/* Rotas públicas (só acessíveis quando não logado) */}
+          <Route path="/login" element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          } />
+          <Route path="/register" element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          } />
+          
+          {/* Rotas privadas (só acessíveis quando logado) */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/financeiro" element={
+            <ProtectedRoute>
+              <Financeiro />
+            </ProtectedRoute>
+          } />
+          <Route path="/investimento" element={
+            <ProtectedRoute>
+              <Investimento />
+            </ProtectedRoute>
+          } />
+          <Route path="/saude" element={
+            <ProtectedRoute>
+              <Saude />
+            </ProtectedRoute>
+          } />
+          <Route path="/configuracao" element={
+            <ProtectedRoute>
+              <Configuracao />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="*" element={<div>Página não encontrada</div>} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

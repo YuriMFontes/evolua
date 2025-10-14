@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import './auth.css';
 
 export default function Login() {
@@ -7,18 +8,34 @@ export default function Login() {
         email: '',
         password: ''
     });
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    
+    const { signIn } = useAuth();
+    const navigate = useNavigate();
 
     const handleChange = (e) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
         });
+        setError('');
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Login data:', formData);
-        // Aqui você pode adicionar a lógica de login depois
+        setLoading(true);
+        setError('');
+
+        const result = await signIn(formData.email, formData.password);
+        
+        if (result.success) {
+            navigate('/dashboard');
+        } else {
+            setError(result.message);
+        }
+        
+        setLoading(false);
     };
 
     return (
@@ -37,6 +54,12 @@ export default function Login() {
                     </div>
 
                     <form className="auth-form" onSubmit={handleSubmit}>
+                        {error && (
+                            <div className="auth-error">
+                                {error}
+                            </div>
+                        )}
+                        
                         <div className="auth-input-group">
                             <label htmlFor="email" className="auth-label">Email</label>
                             <input
@@ -48,6 +71,7 @@ export default function Login() {
                                 className="auth-input"
                                 placeholder="seu@email.com"
                                 required
+                                disabled={loading}
                             />
                         </div>
 
@@ -62,12 +86,13 @@ export default function Login() {
                                 className="auth-input"
                                 placeholder="••••••••"
                                 required
+                                disabled={loading}
                             />
                         </div>
 
                         <div className="auth-options">
                             <label className="auth-checkbox">
-                                <input type="checkbox" />
+                                <input type="checkbox" disabled={loading} />
                                 <span className="auth-checkmark"></span>
                                 Lembrar de mim
                             </label>
@@ -76,8 +101,8 @@ export default function Login() {
                             </a>
                         </div>
 
-                        <button type="submit" className="auth-button">
-                            Entrar
+                        <button type="submit" className="auth-button" disabled={loading}>
+                            {loading ? 'Entrando...' : 'Entrar'}
                         </button>
                     </form>
 
