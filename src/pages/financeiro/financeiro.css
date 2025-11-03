@@ -173,16 +173,71 @@
 }
 
 /* =======================
+   FILTRO DE MÊS
+   ======================= */
+
+.filtro-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.filtro-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 15px;
+}
+
+.input-mes-filtro {
+    padding: 10px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.input-mes-filtro:focus {
+    outline: none;
+    border-color: #4a6cf7;
+    box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+}
+
+.btn-hoje {
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-hoje:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+/* =======================
    TIPO BADGE
    ======================= */
 
 .tipo-badge {
     display: inline-block;
-    padding: 6px 12px;
+    padding: px 12px;
     border-radius: 12px;
     font-size: 13px;
     font-weight: 600;
     text-align: center;
+    margin-top: 10px;
 }
 
 .tipo-receita {
@@ -418,6 +473,27 @@
         width: 100%;
         padding: 14px 24px;
         font-size: 15px;
+    }
+
+    /* Filtro responsivo */
+    .filtro-container {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 14px;
+    }
+
+    .filtro-label {
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .input-mes-filtro {
+        width: 100%;
+        margin-bottom: 12px;
+    }
+
+    .btn-hoje {
+        width: 100%;
     }
 
     /* Layout adaptável: 1 coluna */

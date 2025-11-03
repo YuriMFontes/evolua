@@ -8,14 +8,21 @@ import { useAuth } from "../../contexts/AuthContext"
 export default function Financeiro(){
     const { user } = useAuth()
     const [financeiro, setFinanceiro] = useState([])
+    const [financeiroCompleto, setFinanceiroCompleto] = useState([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
+    const [mesFiltro, setMesFiltro] = useState(() => {
+        const hoje = new Date()
+        return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+    })
     const [formData, setFormData] = useState({
         tipo: "",
         descricao: "",
         valor: "",
         vencimento: "",
-        status: "pendente"
+        status: "pendente",
+        parcelado: false,
+        quantidadeParcelas: 1
     })
 
     // Buscar dados do financeiro
@@ -31,7 +38,7 @@ export default function Financeiro(){
                 .order("vencimento", { ascending: true })
 
             if (error) throw error
-            setFinanceiro(data || [])
+            setFinanceiroCompleto(data || [])
         } catch (error) {
             console.error("Erro ao buscar dados financeiros:", error)
         } finally {
@@ -42,6 +49,25 @@ export default function Financeiro(){
     useEffect(() => {
         fetchFinanceiro()
     }, [fetchFinanceiro])
+
+    // Filtrar dados por mês
+    useEffect(() => {
+        if (!financeiroCompleto.length) {
+            setFinanceiro([])
+            return
+        }
+
+        const [ano, mes] = mesFiltro.split('-')
+        const filtered = financeiroCompleto.filter(item => {
+            const itemDate = new Date(item.vencimento)
+            const itemAno = itemDate.getFullYear()
+            const itemMes = itemDate.getMonth() + 1
+            
+            return itemAno === parseInt(ano) && itemMes === parseInt(mes)
+        })
+
+        setFinanceiro(filtered)
+    }, [mesFiltro, financeiroCompleto])
 
     // Calcular totais
     const calcularTotais = () => {
@@ -101,18 +127,46 @@ export default function Financeiro(){
             // Se for despesa, calcular status baseado na data
             let statusFinal = formData.tipo === "receita" ? "pago" : calcularStatus(formData.vencimento, formData.status)
 
-            const { error } = await supabase
-                .from("financeiro")
-                .insert([{
-                    user_id: user.id,
-                    tipo: formData.tipo,
-                    descricao: formData.descricao,
-                    valor: parseFloat(formData.valor),
-                    vencimento: formData.vencimento,
-                    status: statusFinal
-                }])
+            // Se for parcelado, criar múltiplos registros
+            if (formData.parcelado && formData.quantidadeParcelas > 1 && formData.tipo === "despesa") {
+                const registros = []
+                const valorParcela = parseFloat(formData.valor) / formData.quantidadeParcelas
+                const dataBase = new Date(formData.vencimento + "T00:00:00")
+                
+                for (let i = 0; i < formData.quantidadeParcelas; i++) {
+                    const dataParcela = new Date(dataBase)
+                    dataParcela.setMonth(dataBase.getMonth() + i)
+                    
+                    registros.push({
+                        user_id: user.id,
+                        tipo: formData.tipo,
+                        descricao: `${formData.descricao} (${i + 1}/${formData.quantidadeParcelas})`,
+                        valor: Math.round(valorParcela * 100) / 100, // Arredonda para 2 casas decimais
+                        vencimento: dataParcela.toISOString().split('T')[0],
+                        status: calcularStatus(dataParcela.toISOString().split('T')[0], formData.status)
+                    })
+                }
 
-            if (error) throw error
+                const { error } = await supabase
+                    .from("financeiro")
+                    .insert(registros)
+
+                if (error) throw error
+            } else {
+                // Registro único (sem parcelamento)
+                const { error } = await supabase
+                    .from("financeiro")
+                    .insert([{
+                        user_id: user.id,
+                        tipo: formData.tipo,
+                        descricao: formData.descricao,
+                        valor: parseFloat(formData.valor),
+                        vencimento: formData.vencimento,
+                        status: statusFinal
+                    }])
+
+                if (error) throw error
+            }
 
             // Limpar formulário e recarregar dados
             setFormData({
@@ -120,7 +174,9 @@ export default function Financeiro(){
                 descricao: "",
                 valor: "",
                 vencimento: "",
-                status: "pendente"
+                status: "pendente",
+                parcelado: false,
+                quantidadeParcelas: 1
             })
             setShowModal(false)
             fetchFinanceiro()
@@ -147,20 +203,90 @@ export default function Financeiro(){
 
     // Deletar registro
     const handleDelete = async (id) => {
+        console.log("handleDelete chamado com ID:", id)
+        
         if (!window.confirm("Tem certeza que deseja excluir este registro?")) {
             return
         }
 
-        try {
-            const { error } = await supabase
-                .from("financeiro")
-                .delete()
-                .eq("id", id)
+        if (!user) {
+            alert("Usuário não autenticado")
+            return
+        }
 
-            if (error) throw error
+        try {
+            console.log("Buscando registro no banco...")
+            // Primeiro, buscar o registro para verificar se é parcelado
+            const { data: registro, error: errorBuscaRegistro } = await supabase
+                .from("financeiro")
+                .select("*")
+                .eq("id", id)
+                .single()
+
+            if (errorBuscaRegistro) {
+                console.error("Erro ao buscar registro:", errorBuscaRegistro)
+                throw errorBuscaRegistro
+            }
+
+            if (!registro) {
+                alert("Registro não encontrado")
+                return
+            }
+
+            console.log("Registro encontrado:", registro)
+
+            // Verificar se é uma parcela (tem o formato "Descrição (x/y)")
+            const matchParcela = registro.descricao.match(/\((\d+)\/(\d+)\)$/)
+            console.log("Match parcela:", matchParcela)
+            
+            if (matchParcela) {
+                // É uma parcela, buscar todas as parcelas do mesmo grupo
+                const descBase = registro.descricao.replace(/\s*\(\d+\/\d+\)$/, "")
+                console.log("Descrição base:", descBase)
+                
+                // Buscar todos os registros do usuário e filtrar localmente
+                const { data: todosRegistros, error: errorBusca } = await supabase
+                    .from("financeiro")
+                    .select("id, descricao")
+                    .eq("user_id", user.id)
+
+                if (errorBusca) throw errorBusca
+                console.log("Todos os registros:", todosRegistros)
+
+                // Filtrar parcelas que começam com descBase
+                const parcelasParaExcluir = (todosRegistros || []).filter(item => {
+                    return item.descricao.startsWith(descBase) && item.descricao.match(/\(\d+\/\d+\)$/)
+                })
+                console.log("Parcelas para excluir:", parcelasParaExcluir)
+
+                if (parcelasParaExcluir.length > 0) {
+                    const idsParaExcluir = parcelasParaExcluir.map(p => p.id)
+                    console.log("IDs para excluir:", idsParaExcluir)
+                    const { error } = await supabase
+                        .from("financeiro")
+                        .delete()
+                        .in("id", idsParaExcluir)
+
+                    if (error) throw error
+                    alert(`Todas as parcelas foram excluídas (${parcelasParaExcluir.length} parcelas)`)
+                }
+            } else {
+                // Não é uma parcela, excluir apenas esse registro
+                console.log("Excluindo registro único")
+                const { error } = await supabase
+                    .from("financeiro")
+                    .delete()
+                    .eq("id", id)
+
+                if (error) throw error
+                alert("Registro excluído com sucesso!")
+            }
+
+            console.log("Recarregando dados...")
             fetchFinanceiro()
         } catch (error) {
             console.error("Erro ao deletar registro:", error)
+            alert("Erro ao deletar registro: " + error.message)
         }
     }
 
@@ -175,6 +301,25 @@ export default function Financeiro(){
                     <h1 className="title-financeiro">Financeiro</h1>
                     <button className="btn-adicionar" onClick={() => setShowModal(true)}>
                         + Adicionar
+                    </button>
+                </div>
+                <div className="filtro-container">
+                    <label htmlFor="mes-filtro" className="filtro-label">Filtrar por Mês:</label>
+                    <input
+                        type="month"
+                        id="mes-filtro"
+                        value={mesFiltro}
+                        onChange={(e) => setMesFiltro(e.target.value)}
+                        className="input-mes-filtro"
+                    />
+                    <button 
+                        className="btn-hoje"
+                        onClick={() => {
+                            const hoje = new Date()
+                            setMesFiltro(`${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`)
+                        }}
+                    >
+                        Hoje
                     </button>
                 </div>
                 
@@ -309,17 +454,57 @@ export default function Financeiro(){
                                     />
                                 </div>
                                 {formData.tipo === "despesa" && (
-                                    <div className="form-group">
-                                        <label>Status Inicial *</label>
-                                        <select
-                                            value={formData.status}
-                                            onChange={(e) => setFormData({...formData, status: e.target.value})}
-                                            required
-                                        >
-                                            <option value="pendente">Pendente</option>
-                                            <option value="pago">Pago</option>
-                                        </select>
-                                    </div>
+                                    <>
+                                        <div className="form-group">
+                                            <label>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.parcelado}
+                                                    onChange={(e) => setFormData({...formData, parcelado: e.target.checked})}
+                                                    style={{ marginRight: "8px" }}
+                                                />
+                                                Despesa Parcelada
+                                            </label>
+                                        </div>
+                                        {formData.parcelado && (
+                                            <div className="form-group">
+                                                <label>Quantidade de Parcelas *</label>
+                                                <input
+                                                    type="number"
+                                                    min="2"
+                                                    max="48"
+                                                    value={formData.quantidadeParcelas}
+                                                    onChange={(e) => setFormData({...formData, quantidadeParcelas: parseInt(e.target.value) || 1})}
+                                                    required
+                                                    placeholder="Ex: 10"
+                                                />
+                                                {formData.valor && formData.parcelado && (
+                                                    <div style={{ 
+                                                        marginTop: "8px",
+                                                        padding: "8px", 
+                                                        background: "linear-gradient(135deg, #e7f3ff, #d0e9ff)", 
+                                                        borderRadius: "8px", 
+                                                        fontSize: "13px", 
+                                                        color: "#0066cc",
+                                                        fontWeight: "500"
+                                                    }}>
+                                                        💰 Valor da parcela: {formatarMoeda(parseFloat(formData.valor || 0) / formData.quantidadeParcelas)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        <div className="form-group">
+                                            <label>Status Inicial *</label>
+                                            <select
+                                                value={formData.status}
+                                                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                                required
+                                            >
+                                                <option value="pendente">Pendente</option>
+                                                <option value="pago">Pago</option>
+                                            </select>
+                                        </div>
+                                    </>
                                 )}
                                 {formData.tipo === "receita" && (
                                     <div style={{ 
