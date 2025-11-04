@@ -455,17 +455,18 @@ export default function Financeiro(){
                                 </div>
                                 {formData.tipo === "despesa" && (
                                     <>
-                                        <div className="form-group">
-                                            <label>
-                                                <input
+                                        <div className="form-group checkbox-inline">
+                                                <label>
+                                                    <input
                                                     type="checkbox"
                                                     checked={formData.parcelado}
-                                                    onChange={(e) => setFormData({...formData, parcelado: e.target.checked})}
-                                                    style={{ marginRight: "8px" }}
-                                                />
-                                                Despesa Parcelada
-                                            </label>
-                                        </div>
+                                                    onChange={(e) =>
+                                                        setFormData({ ...formData, parcelado: e.target.checked })
+                                                    }
+                                                    />
+                                                    Despesa Parcelada
+                                                </label>
+                                                </div>
                                         {formData.parcelado && (
                                             <div className="form-group">
                                                 <label>Quantidade de Parcelas *</label>
