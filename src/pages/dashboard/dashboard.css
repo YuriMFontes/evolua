@@ -38,7 +38,7 @@ main {
 
 .content-dashboard {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 24px;
     margin-top: 24px;
 }
@@ -70,6 +70,10 @@ main {
     margin-left: 16px;
     font-size: 15px;
     color: #5a5a5a;
+}
+
+.saldo-negativo {
+    color: #dc3545 !important;
 }
 
 .dashboard-info {
@@ -109,6 +113,14 @@ main {
     font-size: 1.2rem;
 }
 
+/* ======== TABLET DASHBOARD ======== */
+@media screen and (max-width: 1200px) and (min-width: 1001px) {
+    .content-dashboard {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+}
+
 /* ======== MOBILE DASHBOARD ======== */
 @media screen and (max-width: 1000px) {
 
@@ -125,7 +137,7 @@ main {
         margin-bottom: 12px;
     }
 
-    /* Grid adaptável: 1 coluna */
+    /* Grid adaptável: 1 coluna em mobile */
     .content-dashboard {
         grid-template-columns: 1fr;
         gap: 16px;
