@@ -14,8 +14,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           
@@ -61,7 +61,7 @@ function App() {
           <Route path="*" element={<div>Página não encontrada</div>} />
         </Routes>
       </BrowserRouter>
-      </AuthProvider>
+    </AuthProvider>
     </ThemeProvider>
   );
 }

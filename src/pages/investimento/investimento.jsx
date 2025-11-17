@@ -44,12 +44,9 @@ export default function Investimento(){
         ticker: "",
         quantidade: "",
         preco_medio: "",
-        corretora: "",
-        data_compra: "",
-        taxas: "",
-        preco_atual: "",
-        setor: ""
+        data_compra: ""
     })
+    const [formError, setFormError] = useState("")
 
 
     // Buscar investimentos
@@ -199,14 +196,40 @@ export default function Investimento(){
         e.preventDefault()
         if (!user) return
 
+        setFormError("")
+
+        // Validações básicas
+        if (!formData.tipo_ativo) {
+            setFormError("Selecione o tipo de ativo")
+            return
+        }
+        if (!formData.ticker || formData.ticker.trim() === "") {
+            setFormError("Informe o ticker")
+            return
+        }
+        if (!formData.quantidade || parseFloat(formData.quantidade) <= 0) {
+            setFormError("Informe uma quantidade válida")
+            return
+        }
+        if (!formData.preco_medio || parseFloat(formData.preco_medio) <= 0) {
+            setFormError("Informe um preço médio válido")
+            return
+        }
+        if (!formData.data_compra) {
+            setFormError("Informe a data de compra")
+            return
+        }
+
         try {
             const dataToSave = {
-                ...formData,
                 user_id: user.id,
+                tipo_ativo: formData.tipo_ativo,
+                ticker: formData.ticker.trim().toUpperCase(),
                 quantidade: parseFloat(formData.quantidade),
                 preco_medio: parseFloat(formData.preco_medio),
-                preco_atual: parseFloat(formData.preco_atual || formData.preco_medio),
-                taxas: parseFloat(formData.taxas || 0)
+                preco_atual: parseFloat(formData.preco_medio), // Usa preço médio como padrão
+                taxas: 0,
+                data_compra: formData.data_compra
             }
 
             if (editingId) {
@@ -224,30 +247,41 @@ export default function Investimento(){
 
             setShowModal(false)
             setEditingId(null)
+            setFormError("")
             setFormData({
-                tipo_ativo: "", ticker: "", quantidade: "", preco_medio: "",
-                corretora: "", data_compra: "", taxas: "", preco_atual: "", setor: ""
+                tipo_ativo: "", ticker: "", quantidade: "", preco_medio: "", data_compra: ""
             })
             fetchInvestimentos()
         } catch (error) {
             console.error("Erro ao salvar investimento:", error)
-            alert("Erro ao salvar investimento: " + error.message)
+            let errorMessage = "Erro ao salvar investimento"
+            
+            if (error.message) {
+                if (error.message.includes("duplicate") || error.message.includes("unique")) {
+                    errorMessage = "Este investimento já existe"
+                } else if (error.message.includes("foreign key") || error.message.includes("user_id")) {
+                    errorMessage = "Erro de autenticação. Faça login novamente"
+                } else if (error.message.includes("null value") || error.message.includes("NOT NULL")) {
+                    errorMessage = "Preencha todos os campos obrigatórios"
+                } else {
+                    errorMessage = error.message
+                }
+            }
+            
+            setFormError(errorMessage)
         }
     }
 
     // Editar investimento
     const handleEdit = (inv) => {
         setEditingId(inv.id)
+        setFormError("")
         setFormData({
             tipo_ativo: inv.tipo_ativo || "",
             ticker: inv.ticker || "",
             quantidade: inv.quantidade || "",
             preco_medio: inv.preco_medio || "",
-            corretora: inv.corretora || "",
-            data_compra: inv.data_compra || "",
-            taxas: inv.taxas || "",
-            preco_atual: inv.preco_atual || inv.preco_medio || "",
-            setor: inv.setor || ""
+            data_compra: inv.data_compra ? inv.data_compra.split('T')[0] : ""
         })
         setShowModal(true)
     }
@@ -270,35 +304,6 @@ export default function Investimento(){
     }
 
 
-    // Exportar CSV
-    const exportarCSV = () => {
-        const headers = ["Ticker", "Tipo", "Quantidade", "Preço Médio", "Preço Atual", "Valor Investido", "Valor Atual", "Lucro/Prejuízo", "Rentabilidade %"]
-        const rows = investimentos.map(inv => {
-            const valorInvestido = parseFloat(inv.quantidade) * parseFloat(inv.preco_medio) + parseFloat(inv.taxas || 0)
-            const valorAtual = parseFloat(inv.quantidade) * parseFloat(inv.preco_atual || inv.preco_medio)
-            const lucro = valorAtual - valorInvestido
-            const rentabilidade = valorInvestido > 0 ? ((lucro / valorInvestido) * 100).toFixed(2) : 0
-
-            return [
-                inv.ticker,
-                TIPOS_ATIVO.find(t => t.value === inv.tipo_ativo)?.label || inv.tipo_ativo,
-                inv.quantidade,
-                formatarMoeda(inv.preco_medio),
-                formatarMoeda(inv.preco_atual || inv.preco_medio),
-                formatarMoeda(valorInvestido),
-                formatarMoeda(valorAtual),
-                formatarMoeda(lucro),
-                `${rentabilidade}%`
-            ]
-        })
-
-        const csv = [headers, ...rows].map(row => row.join(",")).join("\n")
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-        const link = document.createElement("a")
-        link.href = URL.createObjectURL(blob)
-        link.download = `investimentos_${new Date().toISOString().split('T')[0]}.csv`
-        link.click()
-    }
 
     // Calcular percentual da carteira por ativo
     const percentualCarteira = (inv) => {
@@ -315,12 +320,11 @@ export default function Investimento(){
                 <div className="investimento-header">
                     <h1 className="investimento-title">Investimentos</h1>
                     <div className="header-actions">
-                        <button className="btn-export" onClick={exportarCSV}>📥 Exportar CSV</button>
                         <button className="btn-primary" onClick={() => {
                             setEditingId(null)
+                            setFormError("")
                             setFormData({
-                                tipo_ativo: "", ticker: "", quantidade: "", preco_medio: "",
-                                corretora: "", data_compra: "", taxas: "", preco_atual: "", setor: ""
+                                tipo_ativo: "", ticker: "", quantidade: "", preco_medio: "", data_compra: ""
                             })
                             setShowModal(true)
                         }}>+ Novo Investimento</button>
@@ -440,110 +444,99 @@ export default function Investimento(){
 
                 {/* Modal de Investimento */}
                 {showModal && (
-                    <div className="modal-overlay" onClick={() => setShowModal(false)}>
+                    <div className="modal-overlay" onClick={() => {
+                        setShowModal(false)
+                        setFormError("")
+                    }}>
                         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                             <h2>{editingId ? "Editar" : "Novo"} Investimento</h2>
-                            <form onSubmit={handleSubmit}>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Tipo de Ativo *</label>
-                                        <select
-                                            value={formData.tipo_ativo}
-                                            onChange={(e) => setFormData({...formData, tipo_ativo: e.target.value})}
-                                            required
-                                        >
-                                            <option value="">Selecione...</option>
-                                            {TIPOS_ATIVO.map(tipo => (
-                                                <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Ticker *</label>
-                                        <input
-                                            type="text"
-                                            value={formData.ticker}
-                                            onChange={(e) => setFormData({...formData, ticker: e.target.value.toUpperCase()})}
-                                            required
-                                            placeholder="Ex: PETR4"
-                                        />
-                                    </div>
+                            
+                            {formError && (
+                                <div className="form-error">
+                                    {formError}
                                 </div>
+                            )}
+
+                            <form onSubmit={handleSubmit}>
+                                <div className="form-group">
+                                    <label>Tipo de Ativo *</label>
+                                    <select
+                                        value={formData.tipo_ativo}
+                                        onChange={(e) => {
+                                            setFormData({...formData, tipo_ativo: e.target.value})
+                                            setFormError("")
+                                        }}
+                                    >
+                                        <option value="">Selecione o tipo...</option>
+                                        {TIPOS_ATIVO.map(tipo => (
+                                            <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Ticker *</label>
+                                    <input
+                                        type="text"
+                                        value={formData.ticker}
+                                        onChange={(e) => {
+                                            setFormData({...formData, ticker: e.target.value.toUpperCase()})
+                                            setFormError("")
+                                        }}
+                                        placeholder="Ex: PETR4, ITUB4, HGLG11"
+                                        maxLength={10}
+                                    />
+                                </div>
+                                
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label>Quantidade *</label>
                                         <input
                                             type="number"
                                             step="0.01"
+                                            min="0.01"
                                             value={formData.quantidade}
-                                            onChange={(e) => setFormData({...formData, quantidade: e.target.value})}
-                                            required
+                                            onChange={(e) => {
+                                                setFormData({...formData, quantidade: e.target.value})
+                                                setFormError("")
+                                            }}
+                                            placeholder="Ex: 10, 100, 0.5"
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label>Preço Médio *</label>
+                                        <label>Preço Médio (R$) *</label>
                                         <input
                                             type="number"
                                             step="0.01"
+                                            min="0.01"
                                             value={formData.preco_medio}
-                                            onChange={(e) => setFormData({...formData, preco_medio: e.target.value})}
-                                            required
+                                            onChange={(e) => {
+                                                setFormData({...formData, preco_medio: e.target.value})
+                                                setFormError("")
+                                            }}
+                                            placeholder="Ex: 25.50"
                                         />
                                     </div>
                                 </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Preço Atual</label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={formData.preco_atual}
-                                            onChange={(e) => setFormData({...formData, preco_atual: e.target.value})}
-                                            placeholder="Deixe vazio para usar preço médio"
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Data de Compra *</label>
-                                        <input
-                                            type="date"
-                                            value={formData.data_compra}
-                                            onChange={(e) => setFormData({...formData, data_compra: e.target.value})}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Corretora</label>
-                                        <input
-                                            type="text"
-                                            value={formData.corretora}
-                                            onChange={(e) => setFormData({...formData, corretora: e.target.value})}
-                                            placeholder="Ex: XP, Clear, Rico"
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Taxas e Custos</label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={formData.taxas}
-                                            onChange={(e) => setFormData({...formData, taxas: e.target.value})}
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                </div>
+                                
                                 <div className="form-group">
-                                    <label>Setor</label>
+                                    <label>Data de Compra *</label>
                                     <input
-                                        type="text"
-                                        value={formData.setor}
-                                        onChange={(e) => setFormData({...formData, setor: e.target.value})}
-                                        placeholder="Ex: Financeiro, Tecnologia, Varejo"
+                                        type="date"
+                                        value={formData.data_compra}
+                                        onChange={(e) => {
+                                            setFormData({...formData, data_compra: e.target.value})
+                                            setFormError("")
+                                        }}
+                                        max={new Date().toISOString().split('T')[0]}
                                     />
                                 </div>
+                                
                                 <div className="modal-buttons">
-                                    <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>
+                                    <button type="button" className="btn-cancel" onClick={() => {
+                                        setShowModal(false)
+                                        setFormError("")
+                                    }}>
                                         Cancelar
                                     </button>
                                     <button type="submit" className="btn-save">

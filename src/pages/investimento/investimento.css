@@ -7,6 +7,8 @@
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     min-height: calc(100vh - 60px);
     transition: all 0.3s ease;
+    width: calc(100% - 15vw);
+    box-sizing: border-box;
 }
 
 .investimento-header {
@@ -37,8 +39,7 @@
 
 /* Botões */
 .btn-primary,
-.btn-secondary,
-.btn-export {
+.btn-secondary {
     padding: 12px 24px;
     border: none;
     border-radius: 8px;
@@ -72,16 +73,6 @@
 .btn-secondary:hover {
     background: #667eea;
     color: white;
-}
-
-.btn-export {
-    background: #10b981;
-    color: white;
-}
-
-.btn-export:hover {
-    background: #059669;
-    transform: translateY(-2px);
 }
 
 /* Cards de Resumo */
@@ -121,6 +112,7 @@
     color: #1f2937;
     margin-bottom: 8px;
     word-break: break-word;
+    line-height: 1.2;
 }
 
 .card-change {
@@ -218,6 +210,7 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     border: 1px solid rgba(102, 126, 234, 0.1);
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .tabela-header {
@@ -411,16 +404,18 @@
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
 }
 
+/* Mensagem de erro no formulário */
+.form-error {
+    padding: 12px;
+    margin-bottom: 20px;
+    background-color: #fee2e2;
+    color: #dc2626;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
 /* ======== DARK MODE ======== */
-html.dark-mode {
-    background-color: #0f172a;
-}
-
-html.dark-mode body {
-    background-color: #0f172a;
-    color: #f1f5f9;
-}
-
 html.dark-mode .investimento-container {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
 }
@@ -518,21 +513,105 @@ html.dark-mode .sem-dados {
     color: #64748b;
 }
 
+html.dark-mode .form-error {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+
 /* ======== RESPONSIVO ======== */
-@media screen and (max-width: 1200px) {
+
+/* Desktop Grande (> 1400px) */
+@media screen and (min-width: 1401px) {
     .investimento-container {
-        margin-left: 0;
-        padding: 20px 30px;
+        padding: 40px 80px;
+        margin-left: 15vw;
+        width: calc(100% - 15vw);
+    }
+
+    .graficos-grid {
+        max-width: 900px;
+    }
+
+    .chart-wrapper {
+        height: 350px;
     }
 }
 
-@media screen and (max-width: 768px) {
+/* Desktop Padrão (1200px - 1400px) */
+@media screen and (max-width: 1400px) and (min-width: 1201px) {
     .investimento-container {
-        padding: 16px 20px;
+        padding: 30px 50px;
+        margin-left: 15vw;
+        width: calc(100% - 15vw);
+    }
+}
+
+/* Tablet Landscape / Desktop Pequeno (1000px - 1200px) */
+@media screen and (max-width: 1200px) and (min-width: 1001px) {
+    .investimento-container {
+        margin-left: 15vw;
+        width: calc(100% - 15vw);
+        padding: 25px 40px;
     }
 
     .investimento-title {
+        font-size: 28px;
+    }
+
+    .cards-resumo {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .graficos-grid {
+        max-width: 100%;
+    }
+
+    .chart-wrapper {
+        height: 280px;
+    }
+
+    .card-value {
         font-size: 24px;
+    }
+
+    .tabela-investimentos {
+        font-size: 13px;
+        min-width: 900px;
+    }
+
+    .tabela-investimentos th,
+    .tabela-investimentos td {
+        padding: 12px 8px;
+    }
+}
+
+/* Mobile e Tablet (< 1000px) - Sidebar desaparece */
+@media screen and (max-width: 1000px) {
+    .investimento-container {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 20px;
+    }
+    
+    .investimento-title {
+        font-size: 24px;
+    }
+    
+    .cards-resumo {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+}
+
+/* Tablet Portrait (768px - 1000px) */
+@media screen and (max-width: 1000px) and (min-width: 769px) {
+    .investimento-container {
+        padding: 20px 30px;
+    }
+
+    .investimento-title {
+        font-size: 26px;
     }
 
     .investimento-header {
@@ -543,13 +622,96 @@ html.dark-mode .sem-dados {
 
     .header-actions {
         width: 100%;
+        justify-content: flex-start;
+    }
+
+    .btn-primary {
+        font-size: 13px;
+        padding: 10px 20px;
+    }
+
+    .cards-resumo {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .card-resumo {
+        padding: 20px;
+    }
+
+    .card-value {
+        font-size: 22px;
+    }
+
+    .graficos-grid {
+        gap: 20px;
+    }
+
+    .grafico-card {
+        padding: 20px;
+    }
+
+    .grafico-card h3 {
+        font-size: 16px;
+    }
+
+    .chart-wrapper {
+        height: 250px;
+    }
+
+    .tabela-container {
+        padding: 20px;
+    }
+
+    .tabela-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .tabela-investimentos {
+        font-size: 12px;
+        min-width: 850px;
+    }
+
+    .tabela-investimentos th,
+    .tabela-investimentos td {
+        padding: 10px 6px;
+    }
+
+    .modal-content {
+        padding: 24px;
+        max-width: 90%;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Mobile Landscape (576px - 768px) */
+@media screen and (max-width: 768px) {
+    .investimento-container {
+        padding: 16px 18px;
+    }
+
+    .investimento-title {
+        font-size: 22px;
+    }
+
+    .investimento-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .header-actions {
+        width: 100%;
         flex-wrap: wrap;
         gap: 8px;
     }
 
-    .btn-primary,
-    .btn-secondary,
-    .btn-export {
+    .btn-primary {
         font-size: 12px;
         padding: 10px 16px;
         flex: 1;
@@ -560,49 +722,137 @@ html.dark-mode .sem-dados {
     .cards-resumo {
         grid-template-columns: 1fr;
         gap: 12px;
+        margin-bottom: 20px;
     }
 
     .card-resumo {
         padding: 18px;
     }
 
+    .card-label {
+        font-size: 12px;
+    }
+
     .card-value {
         font-size: 20px;
     }
 
+    .card-change {
+        font-size: 12px;
+    }
+
     .graficos-grid {
+        gap: 16px;
+        margin-bottom: 20px;
         max-width: 100%;
     }
 
+    .grafico-card {
+        padding: 16px;
+    }
+
+    .grafico-card h3 {
+        font-size: 15px;
+        margin-bottom: 16px;
+        padding-bottom: 10px;
+    }
+
     .chart-wrapper {
-        height: 250px;
+        height: 220px;
+    }
+
+    .distribuicao-item {
+        padding: 10px 0;
+    }
+
+    .distribuicao-tipo,
+    .distribuicao-quantidade {
+        font-size: 13px;
     }
 
     .tabela-container {
         padding: 16px;
+        border-radius: 12px;
+    }
+
+    .tabela-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .tabela-header h2 {
+        font-size: 18px;
     }
 
     .tabela-investimentos {
-        font-size: 12px;
+        font-size: 11px;
         min-width: 800px;
     }
 
-    .tabela-investimentos th,
+    .tabela-investimentos th {
+        font-size: 10px;
+        padding: 10px 4px;
+    }
+
     .tabela-investimentos td {
-        padding: 10px 6px;
+        padding: 10px 4px;
+    }
+
+    .btn-edit,
+    .btn-delete {
+        font-size: 16px;
+        padding: 2px 4px;
+    }
+
+    .modal-overlay {
+        padding: 10px;
     }
 
     .modal-content {
         padding: 20px;
         max-width: 100%;
+        border-radius: 12px;
+    }
+
+    .modal-content h2 {
+        font-size: 20px;
+        margin-bottom: 20px;
     }
 
     .form-row {
         grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-group label {
+        font-size: 13px;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    .modal-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .btn-cancel,
+    .btn-save {
+        width: 100%;
     }
 }
 
-@media screen and (max-width: 480px) {
+/* Mobile Portrait (< 576px) */
+@media screen and (max-width: 576px) {
     .investimento-container {
         padding: 12px 16px;
     }
@@ -611,27 +861,118 @@ html.dark-mode .sem-dados {
         font-size: 20px;
     }
 
-    .header-actions {
-        flex-direction: column;
+    .investimento-header {
+        gap: 12px;
+        margin-bottom: 20px;
     }
 
-    .btn-primary,
-    .btn-secondary,
-    .btn-export {
+    .header-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .btn-primary {
         width: 100%;
+        justify-content: center;
+        font-size: 13px;
+        padding: 12px 16px;
+    }
+
+    .cards-resumo {
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .card-resumo {
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .card-label {
+        font-size: 11px;
     }
 
     .card-value {
         font-size: 18px;
     }
 
+    .card-change {
+        font-size: 11px;
+    }
+
+    .graficos-grid {
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .grafico-card {
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .grafico-card h3 {
+        font-size: 14px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+    }
+
     .chart-wrapper {
-        height: 220px;
+        height: 200px;
+    }
+
+    .sem-dados {
+        padding: 30px 20px;
+        font-size: 12px;
+    }
+
+    .distribuicao-lista {
+        margin-top: 16px;
+        padding-top: 16px;
+    }
+
+    .distribuicao-item {
+        padding: 8px 0;
+    }
+
+    .distribuicao-tipo,
+    .distribuicao-quantidade {
+        font-size: 12px;
+    }
+
+    .tabela-container {
+        padding: 12px;
+        border-radius: 12px;
+    }
+
+    .tabela-header {
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .tabela-header h2 {
+        font-size: 16px;
     }
 
     .tabela-investimentos {
+        font-size: 10px;
         min-width: 700px;
-        font-size: 11px;
+    }
+
+    .tabela-investimentos th {
+        font-size: 9px;
+        padding: 8px 3px;
+        letter-spacing: 0.3px;
+    }
+
+    .tabela-investimentos td {
+        padding: 8px 3px;
+        font-size: 10px;
+    }
+
+    .btn-edit,
+    .btn-delete {
+        font-size: 16px;
+        padding: 2px 4px;
     }
 
     .modal-overlay {
@@ -641,16 +982,107 @@ html.dark-mode .sem-dados {
 
     .modal-content {
         padding: 20px 16px;
-        border-radius: 20px 20px 0 0;
+        max-width: 100%;
         max-height: 95vh;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .modal-content h2 {
+        font-size: 18px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+    }
+
+    .form-row {
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .form-group {
+        margin-bottom: 14px;
+    }
+
+    .form-group label {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 10px 12px;
+        font-size: 14px;
     }
 
     .modal-buttons {
         flex-direction: column;
+        gap: 8px;
+        margin-top: 20px;
+        padding-top: 20px;
     }
 
     .btn-cancel,
     .btn-save {
         width: 100%;
+        padding: 12px;
+        font-size: 14px;
+    }
+}
+
+/* Mobile Muito Pequeno (< 400px) */
+@media screen and (max-width: 400px) {
+    .investimento-container {
+        padding: 10px 12px;
+    }
+
+    .investimento-title {
+        font-size: 18px;
+    }
+
+    .card-resumo {
+        padding: 14px;
+    }
+
+    .card-value {
+        font-size: 16px;
+    }
+
+    .grafico-card {
+        padding: 12px;
+    }
+
+    .chart-wrapper {
+        height: 180px;
+    }
+
+    .tabela-investimentos {
+        min-width: 600px;
+        font-size: 9px;
+    }
+
+    .tabela-investimentos th,
+    .tabela-investimentos td {
+        padding: 6px 2px;
+    }
+}
+
+/* Ajustes para impressão */
+@media print {
+    .investimento-container {
+        margin-left: 0;
+        padding: 20px;
+        background: white;
+    }
+
+    .header-actions,
+    .btn-edit,
+    .btn-delete {
+        display: none;
+    }
+
+    .card-resumo,
+    .grafico-card,
+    .tabela-container {
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 }
