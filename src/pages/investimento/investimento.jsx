@@ -5,35 +5,19 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { supabase } from "../../lib/supabase"
 import { useAuth } from "../../contexts/AuthContext"
 import { 
-    Doughnut, 
-    Line, 
-    Bar 
+    Doughnut
 } from "react-chartjs-2"
 import {
     Chart as ChartJS,
     ArcElement,
     Tooltip,
-    Legend,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    BarElement,
-    Title,
-    Filler
+    Legend
 } from "chart.js"
 
 ChartJS.register(
     ArcElement,
     Tooltip,
-    Legend,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    BarElement,
-    Title,
-    Filler
+    Legend
 )
 
 // Tipos de ativos disponíveis
@@ -51,14 +35,9 @@ const TIPOS_ATIVO = [
 export default function Investimento(){
     const { user } = useAuth()
     const [investimentos, setInvestimentos] = useState([])
-    const [dividendos, setDividendos] = useState([])
-    const [metas, setMetas] = useState({ patrimonio: 0, dividendos_mensais: 0 })
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
-    const [showModalDividendo, setShowModalDividendo] = useState(false)
-    const [showModalMeta, setShowModalMeta] = useState(false)
     const [editingId, setEditingId] = useState(null)
-    const [darkMode, setDarkMode] = useState(false)
     
     const [formData, setFormData] = useState({
         tipo_ativo: "",
@@ -72,12 +51,6 @@ export default function Investimento(){
         setor: ""
     })
 
-    const [formDividendo, setFormDividendo] = useState({
-        investimento_id: "",
-        valor: "",
-        data: "",
-        tipo: "dividendo"
-    })
 
     // Buscar investimentos
     const fetchInvestimentos = useCallback(async () => {
@@ -100,52 +73,9 @@ export default function Investimento(){
         }
     }, [user])
 
-    // Buscar dividendos
-    const fetchDividendos = useCallback(async () => {
-        if (!user) return
-        
-        try {
-            const { data, error } = await supabase
-                .from("dividendos")
-                .select("*")
-                .eq("user_id", user.id)
-                .order("data", { ascending: false })
-
-            if (error) throw error
-            setDividendos(data || [])
-        } catch (error) {
-            console.error("Erro ao buscar dividendos:", error)
-        }
-    }, [user])
-
-    // Buscar metas
-    const fetchMetas = useCallback(async () => {
-        if (!user) return
-        
-        try {
-            const { data, error } = await supabase
-                .from("metas_investimento")
-                .select("*")
-                .eq("user_id", user.id)
-                .single()
-
-            if (error && error.code !== 'PGRST116') throw error
-            if (data) {
-                setMetas({ 
-                    patrimonio: data.patrimonio || 0, 
-                    dividendos_mensais: data.dividendos_mensais || 0 
-                })
-            }
-        } catch (error) {
-            console.error("Erro ao buscar metas:", error)
-        }
-    }, [user])
-
     useEffect(() => {
         fetchInvestimentos()
-        fetchDividendos()
-        fetchMetas()
-    }, [fetchInvestimentos, fetchDividendos, fetchMetas])
+    }, [fetchInvestimentos])
 
     // Formatar moeda
     const formatarMoeda = (valor) => {
@@ -189,70 +119,28 @@ export default function Investimento(){
         return ((lucroPrejuizo / valorTotalInvestido) * 100).toFixed(2)
     }, [lucroPrejuizo, valorTotalInvestido])
 
-    // Calcular dividendos do mês
-    const dividendosMes = useMemo(() => {
-        const hoje = new Date()
-        const mesAtual = hoje.getMonth()
-        const anoAtual = hoje.getFullYear()
-        
-        return dividendos
-            .filter(div => {
-                const dataDiv = new Date(div.data)
-                return dataDiv.getMonth() === mesAtual && dataDiv.getFullYear() === anoAtual
-            })
-            .reduce((sum, div) => sum + parseFloat(div.valor || 0), 0)
-    }, [dividendos])
 
-    // Calcular dividendos acumulados
-    const dividendosAcumulados = useMemo(() => {
-        return dividendos.reduce((sum, div) => sum + parseFloat(div.valor || 0), 0)
-    }, [dividendos])
 
-    // Calcular rentabilidade diária (simulado - em produção, buscar preços em tempo real)
-    const rentabilidadeDiaria = useMemo(() => {
-        // Simulação: 0.1% ao dia em média
-        return valorAtualCarteira * 0.001
-    }, [valorAtualCarteira])
-
-    // Calcular rentabilidade mensal
-    const rentabilidadeMensal = useMemo(() => {
-        // Simulação: 3% ao mês em média
-        return valorAtualCarteira * 0.03
-    }, [valorAtualCarteira])
-
-    // Agrupar por tipo de ativo
+    // Agrupar por tipo de ativo - mostrar quantidade
     const porTipoAtivo = useMemo(() => {
         const grupos = {}
         investimentos.forEach(inv => {
             const tipo = inv.tipo_ativo || "outros"
             if (!grupos[tipo]) {
-                grupos[tipo] = { valor: 0, quantidade: 0 }
+                grupos[tipo] = { quantidade: 0, valor: 0 }
             }
-            const precoAtual = parseFloat(inv.preco_atual || inv.preco_medio)
-            grupos[tipo].valor += parseFloat(inv.quantidade) * precoAtual
-            grupos[tipo].quantidade += parseFloat(inv.quantidade)
+            grupos[tipo].quantidade += parseFloat(inv.quantidade || 0)
+            const precoAtual = parseFloat(inv.preco_atual || inv.preco_medio || 0)
+            grupos[tipo].valor += parseFloat(inv.quantidade || 0) * precoAtual
         })
         return grupos
     }, [investimentos])
 
-    // Agrupar por setor
-    const porSetor = useMemo(() => {
-        const grupos = {}
-        investimentos.forEach(inv => {
-            const setor = inv.setor || "Não especificado"
-            if (!grupos[setor]) {
-                grupos[setor] = 0
-            }
-            const precoAtual = parseFloat(inv.preco_atual || inv.preco_medio)
-            grupos[setor] += parseFloat(inv.quantidade) * precoAtual
-        })
-        return grupos
-    }, [investimentos])
 
-    // Dados para gráfico de pizza - composição por tipo
+    // Dados para gráfico de pizza - composição por tipo (quantidade)
     const chartDataComposicao = useMemo(() => {
         const tipos = Object.keys(porTipoAtivo)
-        const valores = Object.values(porTipoAtivo).map(g => g.valor)
+        const quantidades = Object.values(porTipoAtivo).map(g => g.quantidade)
         
         const cores = {
             acao: "#4a6cf7",
@@ -266,9 +154,13 @@ export default function Investimento(){
         }
         
         return {
-            labels: tipos.map(t => TIPOS_ATIVO.find(ta => ta.value === t)?.label || t),
+            labels: tipos.map(t => {
+                const label = TIPOS_ATIVO.find(ta => ta.value === t)?.label || t
+                const qtd = porTipoAtivo[t].quantidade
+                return `${label} (${qtd.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })})`
+            }),
             datasets: [{
-                data: valores,
+                data: quantidades,
                 backgroundColor: tipos.map(t => cores[t] || "#bdbdbd"),
                 borderColor: "#ffffff",
                 borderWidth: 2
@@ -276,121 +168,7 @@ export default function Investimento(){
         }
     }, [porTipoAtivo])
 
-    // Dados para gráfico de evolução do patrimônio (últimos 12 meses)
-    const chartDataEvolucao = useMemo(() => {
-        const meses = []
-        const valores = []
-        const hoje = new Date()
-        
-        for (let i = 11; i >= 0; i--) {
-            const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1)
-            meses.push(data.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }))
-            
-            // Simulação: crescimento linear com variação
-            const base = valorTotalInvestido
-            const crescimento = (11 - i) * 0.03 // 3% ao mês
-            const variacao = (Math.random() - 0.5) * 0.1 // ±5% de variação
-            valores.push(base * (1 + crescimento + variacao))
-        }
-        
-        return {
-            labels: meses,
-            datasets: [{
-                label: "Patrimônio",
-                data: valores,
-                borderColor: "#4a6cf7",
-                backgroundColor: "rgba(74, 108, 247, 0.1)",
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }]
-        }
-    }, [valorTotalInvestido])
 
-    // Dados para gráfico de dividendos mensais
-    const chartDataDividendos = useMemo(() => {
-        const meses = []
-        const valores = []
-        const hoje = new Date()
-        
-        for (let i = 11; i >= 0; i--) {
-            const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1)
-            meses.push(data.toLocaleDateString('pt-BR', { month: 'short' }))
-            
-            const mes = data.getMonth()
-            const ano = data.getFullYear()
-            const totalMes = dividendos
-                .filter(div => {
-                    const dataDiv = new Date(div.data)
-                    return dataDiv.getMonth() === mes && dataDiv.getFullYear() === ano
-                })
-                .reduce((sum, div) => sum + parseFloat(div.valor || 0), 0)
-            
-            valores.push(totalMes)
-        }
-        
-        return {
-            labels: meses,
-            datasets: [{
-                label: "Dividendos (R$)",
-                data: valores,
-                backgroundColor: "rgba(16, 185, 129, 0.6)",
-                borderColor: "#10b981",
-                borderWidth: 2
-            }]
-        }
-    }, [dividendos])
-
-    // Dados para gráfico de valorização por ativo
-    const chartDataValorizacao = useMemo(() => {
-        const top10 = [...investimentos]
-            .sort((a, b) => {
-                const valorA = parseFloat(a.quantidade) * parseFloat(a.preco_atual || a.preco_medio)
-                const valorB = parseFloat(b.quantidade) * parseFloat(b.preco_atual || b.preco_medio)
-                return valorB - valorA
-            })
-            .slice(0, 10)
-        
-        return {
-            labels: top10.map(inv => inv.ticker),
-            datasets: [{
-                label: "Valor Investido",
-                data: top10.map(inv => parseFloat(inv.quantidade) * parseFloat(inv.preco_medio)),
-                backgroundColor: "rgba(239, 68, 68, 0.6)",
-                borderColor: "#ef4444",
-                borderWidth: 1
-            }, {
-                label: "Valor Atual",
-                data: top10.map(inv => parseFloat(inv.quantidade) * parseFloat(inv.preco_atual || inv.preco_medio)),
-                backgroundColor: "rgba(16, 185, 129, 0.6)",
-                borderColor: "#10b981",
-                borderWidth: 1
-            }]
-        }
-    }, [investimentos])
-
-    // Opções dos gráficos
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: "bottom",
-                labels: {
-                    padding: 10,
-                    font: { size: 11 }
-                }
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return `${context.dataset.label || ''}: ${formatarMoeda(context.parsed.y || context.parsed)}`
-                    }
-                }
-            }
-        }
-    }
 
     const chartOptionsPizza = {
         responsive: true,
@@ -407,8 +185,9 @@ export default function Investimento(){
                 callbacks: {
                     label: function(context) {
                         const total = context.dataset.data.reduce((a, b) => a + b, 0)
-                        const percentage = ((context.parsed / total) * 100).toFixed(1)
-                        return `${context.label}: ${formatarMoeda(context.parsed)} (${percentage}%)`
+                        const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0
+                        const quantidade = context.parsed.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                        return `Quantidade: ${quantidade} (${percentage}%)`
                     }
                 }
             }
@@ -490,52 +269,6 @@ export default function Investimento(){
         }
     }
 
-    // Salvar dividendo
-    const handleSubmitDividendo = async (e) => {
-        e.preventDefault()
-        if (!user) return
-
-        try {
-            const { error } = await supabase
-                .from("dividendos")
-                .insert([{
-                    ...formDividendo,
-                    user_id: user.id,
-                    valor: parseFloat(formDividendo.valor)
-                }])
-            if (error) throw error
-
-            setShowModalDividendo(false)
-            setFormDividendo({ investimento_id: "", valor: "", data: "", tipo: "dividendo" })
-            fetchDividendos()
-        } catch (error) {
-            console.error("Erro ao salvar dividendo:", error)
-            alert("Erro ao salvar dividendo: " + error.message)
-        }
-    }
-
-    // Salvar metas
-    const handleSubmitMeta = async (e) => {
-        e.preventDefault()
-        if (!user) return
-
-        try {
-            const { error } = await supabase
-                .from("metas_investimento")
-                .upsert({
-                    user_id: user.id,
-                    patrimonio: parseFloat(metas.patrimonio || 0),
-                    dividendos_mensais: parseFloat(metas.dividendos_mensais || 0)
-                })
-            if (error) throw error
-
-            setShowModalMeta(false)
-            fetchMetas()
-        } catch (error) {
-            console.error("Erro ao salvar metas:", error)
-            alert("Erro ao salvar metas: " + error.message)
-        }
-    }
 
     // Exportar CSV
     const exportarCSV = () => {
@@ -575,16 +308,13 @@ export default function Investimento(){
     }
 
     return (
-        <main className={darkMode ? "dark-mode" : ""}>
+        <main>
             <Header/>
             <Sidebar/>
             <div className="investimento-container">
                 <div className="investimento-header">
                     <h1 className="investimento-title">Investimentos</h1>
                     <div className="header-actions">
-                        <button className="btn-toggle-theme" onClick={() => setDarkMode(!darkMode)}>
-                            {darkMode ? "☀️" : "🌙"}
-                        </button>
                         <button className="btn-export" onClick={exportarCSV}>📥 Exportar CSV</button>
                         <button className="btn-primary" onClick={() => {
                             setEditingId(null)
@@ -609,21 +339,20 @@ export default function Investimento(){
                         <div className="card-value">{formatarMoeda(valorTotalInvestido)}</div>
                     </div>
                     <div className="card-resumo">
-                        <div className="card-label">Dividendos do Mês</div>
-                        <div className="card-value positive">{formatarMoeda(dividendosMes)}</div>
-                        <div className="card-change">Total: {formatarMoeda(dividendosAcumulados)}</div>
+                        <div className="card-label">Total de Ativos</div>
+                        <div className="card-value">{investimentos.length}</div>
+                        <div className="card-change">Tipos diferentes: {Object.keys(porTipoAtivo).length}</div>
                     </div>
                     <div className="card-resumo">
-                        <div className="card-label">Rentabilidade Mensal</div>
-                        <div className="card-value positive">{formatarMoeda(rentabilidadeMensal)}</div>
-                        <div className="card-change">Diária: {formatarMoeda(rentabilidadeDiaria)}</div>
+                        <div className="card-label">Quantidade Total</div>
+                        <div className="card-value">{investimentos.reduce((sum, inv) => sum + parseFloat(inv.quantidade || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                     </div>
                 </div>
 
-                {/* Gráficos */}
+                {/* Gráfico de Distribuição */}
                 <div className="graficos-grid">
                     <div className="grafico-card">
-                        <h3>Composição da Carteira</h3>
+                        <h3>Distribuição por Tipo de Ativo</h3>
                         <div className="chart-wrapper">
                             {investimentos.length > 0 ? (
                                 <Doughnut data={chartDataComposicao} options={chartOptionsPizza} />
@@ -631,28 +360,24 @@ export default function Investimento(){
                                 <p className="sem-dados">Nenhum investimento cadastrado</p>
                             )}
                         </div>
-                    </div>
-                    <div className="grafico-card">
-                        <h3>Evolução do Patrimônio</h3>
-                        <div className="chart-wrapper">
-                            <Line data={chartDataEvolucao} options={chartOptions} />
-                        </div>
-                    </div>
-                    <div className="grafico-card">
-                        <h3>Dividendos Mensais</h3>
-                        <div className="chart-wrapper">
-                            <Bar data={chartDataDividendos} options={chartOptions} />
-                        </div>
-                    </div>
-                    <div className="grafico-card">
-                        <h3>Valorização por Ativo</h3>
-                        <div className="chart-wrapper">
-                            {investimentos.length > 0 ? (
-                                <Bar data={chartDataValorizacao} options={chartOptions} />
-                            ) : (
-                                <p className="sem-dados">Nenhum investimento cadastrado</p>
-                            )}
-                        </div>
+                        {/* Lista de quantidades por tipo */}
+                        {investimentos.length > 0 && (
+                            <div className="distribuicao-lista">
+                                {Object.entries(porTipoAtivo).map(([tipo, dados]) => {
+                                    const label = TIPOS_ATIVO.find(t => t.value === tipo)?.label || tipo
+                                    const total = Object.values(porTipoAtivo).reduce((sum, g) => sum + g.quantidade, 0)
+                                    const percentual = total > 0 ? ((dados.quantidade / total) * 100).toFixed(1) : 0
+                                    return (
+                                        <div key={tipo} className="distribuicao-item">
+                                            <span className="distribuicao-tipo">{label}</span>
+                                            <span className="distribuicao-quantidade">
+                                                {dados.quantidade.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ({percentual}%)
+                                            </span>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -660,12 +385,6 @@ export default function Investimento(){
                 <div className="tabela-container">
                     <div className="tabela-header">
                         <h2>Meus Investimentos</h2>
-                        <button className="btn-secondary" onClick={() => setShowModalDividendo(true)}>
-                            + Adicionar Dividendo
-                        </button>
-                        <button className="btn-secondary" onClick={() => setShowModalMeta(true)}>
-                            🎯 Metas
-                        </button>
                     </div>
                     {loading ? (
                         <p>Carregando...</p>
@@ -830,114 +549,12 @@ export default function Investimento(){
                                     <button type="submit" className="btn-save">
                                         {editingId ? "Atualizar" : "Salvar"}
                                     </button>
-                                </div>
+                        </div>
                             </form>
                         </div>
-                    </div>
+                </div>
                 )}
 
-                {/* Modal de Dividendo */}
-                {showModalDividendo && (
-                    <div className="modal-overlay" onClick={() => setShowModalDividendo(false)}>
-                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                            <h2>Adicionar Dividendo</h2>
-                            <form onSubmit={handleSubmitDividendo}>
-                                <div className="form-group">
-                                    <label>Investimento</label>
-                                    <select
-                                        value={formDividendo.investimento_id}
-                                        onChange={(e) => setFormDividendo({...formDividendo, investimento_id: e.target.value})}
-                                    >
-                                        <option value="">Todos</option>
-                                        {investimentos.map(inv => (
-                                            <option key={inv.id} value={inv.id}>{inv.ticker}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Valor *</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={formDividendo.valor}
-                                        onChange={(e) => setFormDividendo({...formDividendo, valor: e.target.value})}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Data *</label>
-                                    <input
-                                        type="date"
-                                        value={formDividendo.data}
-                                        onChange={(e) => setFormDividendo({...formDividendo, data: e.target.value})}
-                                        required
-                                    />
-                                </div>
-                                <div className="modal-buttons">
-                                    <button type="button" className="btn-cancel" onClick={() => setShowModalDividendo(false)}>
-                                        Cancelar
-                                    </button>
-                                    <button type="submit" className="btn-save">Salvar</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
-
-                {/* Modal de Metas */}
-                {showModalMeta && (
-                    <div className="modal-overlay" onClick={() => setShowModalMeta(false)}>
-                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                            <h2>Metas de Investimento</h2>
-                            <form onSubmit={handleSubmitMeta}>
-                                <div className="form-group">
-                                    <label>Meta de Patrimônio</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={metas.patrimonio}
-                                        onChange={(e) => setMetas({...metas, patrimonio: e.target.value})}
-                                        placeholder="0.00"
-                                    />
-                                    <div className="meta-progress">
-                                        <div className="progress-bar">
-                                            <div 
-                                                className="progress-fill" 
-                                                style={{width: `${Math.min((valorAtualCarteira / (metas.patrimonio || 1)) * 100, 100)}%`}}
-                                            ></div>
-                                        </div>
-                                        <span>{((valorAtualCarteira / (metas.patrimonio || 1)) * 100).toFixed(1)}%</span>
-                                    </div>
-                                </div>
-                                <div className="form-group">
-                                    <label>Meta de Dividendos Mensais</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={metas.dividendos_mensais}
-                                        onChange={(e) => setMetas({...metas, dividendos_mensais: e.target.value})}
-                                        placeholder="0.00"
-                                    />
-                                    <div className="meta-progress">
-                                        <div className="progress-bar">
-                                            <div 
-                                                className="progress-fill" 
-                                                style={{width: `${Math.min((dividendosMes / (metas.dividendos_mensais || 1)) * 100, 100)}%`}}
-                                            ></div>
-                                        </div>
-                                        <span>{((dividendosMes / (metas.dividendos_mensais || 1)) * 100).toFixed(1)}%</span>
-                                    </div>
-                                </div>
-                                <div className="modal-buttons">
-                                    <button type="button" className="btn-cancel" onClick={() => setShowModalMeta(false)}>
-                                        Cancelar
-                                    </button>
-                                    <button type="submit" className="btn-save">Salvar</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
             </div>
         </main>
     )

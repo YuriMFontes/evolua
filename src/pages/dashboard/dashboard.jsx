@@ -262,7 +262,7 @@ export default function Dashboard(){
                         </div>
                     </section>
                     <section className="section-dashboard">
-                        <div className="content-section">
+                    <div className="content-section">
                             <h2 className="title-section">Despesas</h2>
                             <h2 className="subtitle-section">
                                 {loading ? "Carregando..." : formatarMoeda(despesas)}
@@ -270,7 +270,7 @@ export default function Dashboard(){
                         </div>
                     </section>
                     <section className="section-dashboard">
-                        <div className="content-section">
+                    <div className="content-section">
                             <h2 className="title-section">Investimentos</h2>
                             <h2 className="subtitle-section">Informativos</h2>
                         </div>

@@ -552,3 +552,111 @@
     }
 }
       
+/* ======== DARK MODE ======== */
+html.dark-mode .financeiro {
+    background-color: #0f172a !important;
+}
+
+html.dark-mode .title-financeiro {
+    background: linear-gradient(90deg, #818cf8, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+html.dark-mode .section-financeiro {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    border-color: #334155;
+}
+
+html.dark-mode .section-financeiro:hover {
+    background: linear-gradient(135deg, #334155, #475569);
+    box-shadow: 0 10px 25px rgba(129, 140, 248, 0.2);
+}
+
+html.dark-mode .title-section {
+    color: #f1f5f9;
+}
+
+html.dark-mode .subtitle-section {
+    color: #94a3b8;
+}
+
+html.dark-mode .section-status {
+    background: linear-gradient(145deg, #1e293b, #334155);
+    border-color: #334155;
+}
+
+html.dark-mode .status-table th {
+    background-color: #334155;
+    color: #f1f5f9;
+    border-bottom-color: #475569;
+}
+
+html.dark-mode .status-table td {
+    color: #cbd5e1;
+    border-bottom-color: #334155;
+}
+
+html.dark-mode .status-table tr:hover {
+    background-color: #334155;
+}
+
+html.dark-mode .filtro-container {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+html.dark-mode .filtro-label {
+    color: #cbd5e1;
+}
+
+html.dark-mode .input-mes-filtro {
+    background: #334155;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
+html.dark-mode .input-mes-filtro:focus {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+html.dark-mode .modal-content {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+html.dark-mode .modal-content h2 {
+    color: #f1f5f9;
+}
+
+html.dark-mode .form-group label {
+    color: #cbd5e1;
+}
+
+html.dark-mode .form-group input,
+html.dark-mode .form-group select {
+    background: #334155;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
+html.dark-mode .form-group input:focus,
+html.dark-mode .form-group select:focus {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+html.dark-mode .btn-cancelar {
+    background-color: #334155;
+    color: #cbd5e1;
+}
+
+html.dark-mode .btn-cancelar:hover {
+    background-color: #475569;
+}
+
+html.dark-mode .sem-dados {
+    color: #64748b;
+}
+      

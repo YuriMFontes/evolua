@@ -47,3 +47,22 @@
 .section:active {
     transform: scale(0.98);
 }
+
+/* ======== DARK MODE ======== */
+html.dark-mode .side-bar {
+    background: linear-gradient(160deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+    border-right-color: rgba(51, 65, 85, 0.5);
+    box-shadow: 2px 0 20px rgba(0, 0, 0, 0.3);
+}
+
+html.dark-mode .section {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(51, 65, 85, 0.5);
+    color: #cbd5e1;
+}
+
+html.dark-mode .section:hover {
+    background: linear-gradient(135deg, #334155, #475569);
+    color: #818cf8;
+    box-shadow: 0 8px 18px rgba(129, 140, 248, 0.2);
+}

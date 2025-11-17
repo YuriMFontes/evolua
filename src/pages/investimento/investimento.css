@@ -38,8 +38,7 @@
 /* Botões */
 .btn-primary,
 .btn-secondary,
-.btn-export,
-.btn-toggle-theme {
+.btn-export {
     padding: 12px 24px;
     border: none;
     border-radius: 8px;
@@ -83,13 +82,6 @@
 .btn-export:hover {
     background: #059669;
     transform: translateY(-2px);
-}
-
-.btn-toggle-theme {
-    background: #374151;
-    color: white;
-    padding: 12px;
-    font-size: 18px;
 }
 
 /* Cards de Resumo */
@@ -149,9 +141,12 @@
 /* Grid de Gráficos */
 .graficos-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 24px;
     margin-bottom: 30px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .grafico-card {
@@ -181,6 +176,37 @@
     text-align: center;
     color: #9ca3af;
     padding: 40px;
+    font-size: 14px;
+}
+
+/* Lista de distribuição */
+.distribuicao-lista {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #f3f4f6;
+}
+
+.distribuicao-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.distribuicao-item:last-child {
+    border-bottom: none;
+}
+
+.distribuicao-tipo {
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
+}
+
+.distribuicao-quantidade {
+    font-weight: 500;
+    color: #667eea;
     font-size: 14px;
 }
 
@@ -342,34 +368,6 @@
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.meta-progress {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
-}
-
-.progress-bar {
-    flex: 1;
-    height: 8px;
-    background: #e5e7eb;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    transition: width 0.3s ease;
-}
-
-.meta-progress span {
-    font-size: 12px;
-    font-weight: 600;
-    color: #667eea;
-    min-width: 50px;
-}
-
 .modal-buttons {
     display: flex;
     gap: 12px;
@@ -413,202 +411,123 @@
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
 }
 
-/* Dark Mode */
-.dark-mode .investimento-container {
-    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+/* ======== DARK MODE ======== */
+html.dark-mode {
+    background-color: #0f172a;
 }
 
-.dark-mode .card-resumo,
-.dark-mode .grafico-card,
-.dark-mode .tabela-container,
-.dark-mode .modal-content {
-    background: #1f2937;
-    color: #f9fafb;
-    border-color: #374151;
+html.dark-mode body {
+    background-color: #0f172a;
+    color: #f1f5f9;
 }
 
-.dark-mode .card-value,
-.dark-mode .grafico-card h3,
-.dark-mode .tabela-header h2,
-.dark-mode .modal-content h2 {
-    color: #f9fafb;
+html.dark-mode .investimento-container {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
 }
 
-.dark-mode .card-label,
-.dark-mode .tabela-investimentos td {
-    color: #d1d5db;
+html.dark-mode .card-resumo,
+html.dark-mode .grafico-card,
+html.dark-mode .tabela-container,
+html.dark-mode .modal-content {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
 }
 
-.dark-mode .tabela-investimentos tbody tr:hover {
-    background: #374151;
+html.dark-mode .card-label {
+    color: #94a3b8;
 }
 
-.dark-mode .form-group input,
-.dark-mode .form-group select {
-    background: #374151;
-    border-color: #4b5563;
-    color: #f9fafb;
+html.dark-mode .card-value {
+    color: #f1f5f9;
 }
 
-/* ======== MEDIA QUERIES ======== */
-
-/* Desktop Grande (> 1400px) */
-@media screen and (min-width: 1401px) {
-    .investimento-container {
-        padding: 40px 80px;
-    }
-
-    .graficos-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 30px;
-    }
-
-    .chart-wrapper {
-        height: 350px;
-    }
+html.dark-mode .card-change {
+    color: #94a3b8;
 }
 
-/* Desktop Padrão (1200px - 1400px) */
-@media screen and (max-width: 1400px) and (min-width: 1201px) {
-    .investimento-container {
-        padding: 30px 50px;
-    }
-
-    .graficos-grid {
-        gap: 20px;
-    }
+html.dark-mode .grafico-card h3,
+html.dark-mode .tabela-header h2,
+html.dark-mode .modal-content h2 {
+    color: #f1f5f9;
+    border-bottom-color: #334155;
 }
 
-/* Tablet Landscape / Desktop Pequeno (992px - 1200px) */
-@media screen and (max-width: 1200px) and (min-width: 992px) {
-    .investimento-container {
-        margin-left: 0;
-        padding: 25px 40px;
-    }
-
-    .investimento-title {
-        font-size: 28px;
-    }
-
-    .cards-resumo {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
-    }
-
-    .graficos-grid {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-
-    .chart-wrapper {
-        height: 280px;
-    }
-
-    .card-value {
-        font-size: 24px;
-    }
-
-    .tabela-investimentos {
-        font-size: 13px;
-    }
-
-    .tabela-investimentos th,
-    .tabela-investimentos td {
-        padding: 12px 8px;
-    }
+html.dark-mode .distribuicao-lista {
+    border-top-color: #334155;
 }
 
-/* Tablet Portrait (768px - 992px) */
-@media screen and (max-width: 991px) and (min-width: 769px) {
+html.dark-mode .distribuicao-item {
+    border-bottom-color: #334155;
+}
+
+html.dark-mode .distribuicao-tipo {
+    color: #cbd5e1;
+}
+
+html.dark-mode .distribuicao-quantidade {
+    color: #818cf8;
+}
+
+html.dark-mode .tabela-investimentos td {
+    color: #cbd5e1;
+}
+
+html.dark-mode .tabela-investimentos tbody tr:hover {
+    background: #334155;
+}
+
+html.dark-mode .form-group label {
+    color: #cbd5e1;
+}
+
+html.dark-mode .form-group input,
+html.dark-mode .form-group select {
+    background: #334155;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
+html.dark-mode .form-group input:focus,
+html.dark-mode .form-group select:focus {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+html.dark-mode .btn-secondary {
+    background: #334155;
+    color: #818cf8;
+    border-color: #475569;
+}
+
+html.dark-mode .btn-secondary:hover {
+    background: #475569;
+    color: #f1f5f9;
+}
+
+html.dark-mode .btn-cancel {
+    background: #334155;
+    color: #cbd5e1;
+}
+
+html.dark-mode .btn-cancel:hover {
+    background: #475569;
+}
+
+html.dark-mode .sem-dados {
+    color: #64748b;
+}
+
+/* ======== RESPONSIVO ======== */
+@media screen and (max-width: 1200px) {
     .investimento-container {
         margin-left: 0;
         padding: 20px 30px;
     }
-
-    .investimento-title {
-        font-size: 26px;
-    }
-
-    .investimento-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .header-actions {
-        width: 100%;
-        justify-content: flex-start;
-    }
-
-    .btn-primary,
-    .btn-secondary,
-    .btn-export {
-        font-size: 13px;
-        padding: 10px 20px;
-    }
-
-    .cards-resumo {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
-    }
-
-    .card-resumo {
-        padding: 20px;
-    }
-
-    .card-value {
-        font-size: 22px;
-    }
-
-    .graficos-grid {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-
-    .grafico-card {
-        padding: 20px;
-    }
-
-    .grafico-card h3 {
-        font-size: 16px;
-    }
-
-    .chart-wrapper {
-        height: 250px;
-    }
-
-    .tabela-container {
-        padding: 20px;
-    }
-
-    .tabela-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .tabela-investimentos {
-        font-size: 12px;
-        min-width: 900px;
-    }
-
-    .tabela-investimentos th,
-    .tabela-investimentos td {
-        padding: 10px 6px;
-    }
-
-    .modal-content {
-        padding: 24px;
-        max-width: 90%;
-    }
-
-    .form-row {
-        grid-template-columns: 1fr;
-    }
 }
 
-/* Mobile Landscape (576px - 768px) */
-@media screen and (max-width: 768px) and (min-width: 577px) {
+@media screen and (max-width: 768px) {
     .investimento-container {
-        margin-left: 0;
         padding: 16px 20px;
     }
 
@@ -630,8 +549,7 @@
 
     .btn-primary,
     .btn-secondary,
-    .btn-export,
-    .btn-toggle-theme {
+    .btn-export {
         font-size: 12px;
         padding: 10px 16px;
         flex: 1;
@@ -642,246 +560,78 @@
     .cards-resumo {
         grid-template-columns: 1fr;
         gap: 12px;
-        margin-bottom: 20px;
     }
 
     .card-resumo {
         padding: 18px;
     }
 
-    .card-label {
-        font-size: 12px;
-    }
-
     .card-value {
         font-size: 20px;
     }
 
-    .card-change {
-        font-size: 12px;
-    }
-
     .graficos-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-        margin-bottom: 20px;
-    }
-
-    .grafico-card {
-        padding: 16px;
-    }
-
-    .grafico-card h3 {
-        font-size: 15px;
-        margin-bottom: 16px;
-        padding-bottom: 10px;
+        max-width: 100%;
     }
 
     .chart-wrapper {
-        height: 220px;
+        height: 250px;
     }
 
     .tabela-container {
         padding: 16px;
-        border-radius: 12px;
-    }
-
-    .tabela-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 16px;
-    }
-
-    .tabela-header h2 {
-        font-size: 18px;
     }
 
     .tabela-investimentos {
-        font-size: 11px;
+        font-size: 12px;
         min-width: 800px;
     }
 
-    .tabela-investimentos th {
-        font-size: 10px;
-        padding: 10px 4px;
-    }
-
+    .tabela-investimentos th,
     .tabela-investimentos td {
-        padding: 10px 4px;
-    }
-
-    .modal-overlay {
-        padding: 10px;
+        padding: 10px 6px;
     }
 
     .modal-content {
         padding: 20px;
         max-width: 100%;
-        border-radius: 12px;
-    }
-
-    .modal-content h2 {
-        font-size: 20px;
-        margin-bottom: 20px;
     }
 
     .form-row {
         grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .form-group {
-        margin-bottom: 16px;
-    }
-
-    .form-group label {
-        font-size: 13px;
-    }
-
-    .form-group input,
-    .form-group select {
-        padding: 10px 14px;
-        font-size: 14px;
-    }
-
-    .modal-buttons {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .btn-cancel,
-    .btn-save {
-        width: 100%;
     }
 }
 
-/* Mobile Portrait (< 576px) */
-@media screen and (max-width: 576px) {
+@media screen and (max-width: 480px) {
     .investimento-container {
-        margin-left: 0;
         padding: 12px 16px;
-        margin-top: 60px;
     }
 
     .investimento-title {
         font-size: 20px;
     }
 
-    .investimento-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-
     .header-actions {
-        width: 100%;
         flex-direction: column;
-        gap: 8px;
     }
 
     .btn-primary,
     .btn-secondary,
-    .btn-export,
-    .btn-toggle-theme {
+    .btn-export {
         width: 100%;
-        justify-content: center;
-        font-size: 13px;
-        padding: 12px 16px;
-    }
-
-    .cards-resumo {
-        grid-template-columns: 1fr;
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-
-    .card-resumo {
-        padding: 16px;
-        border-radius: 12px;
-    }
-
-    .card-label {
-        font-size: 11px;
     }
 
     .card-value {
         font-size: 18px;
     }
 
-    .card-change {
-        font-size: 11px;
-    }
-
-    .graficos-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-
-    .grafico-card {
-        padding: 14px;
-        border-radius: 12px;
-    }
-
-    .grafico-card h3 {
-        font-size: 14px;
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-    }
-
     .chart-wrapper {
-        height: 200px;
-    }
-
-    .sem-dados {
-        padding: 30px 20px;
-        font-size: 12px;
-    }
-
-    .tabela-container {
-        padding: 12px;
-        border-radius: 12px;
-    }
-
-    .tabela-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-        margin-bottom: 12px;
-    }
-
-    .tabela-header h2 {
-        font-size: 16px;
-    }
-
-    .tabela-header .btn-secondary {
-        width: 100%;
-        font-size: 12px;
-        padding: 10px;
+        height: 220px;
     }
 
     .tabela-investimentos {
-        font-size: 10px;
         min-width: 700px;
-    }
-
-    .tabela-investimentos th {
-        font-size: 9px;
-        padding: 8px 3px;
-        letter-spacing: 0.3px;
-    }
-
-    .tabela-investimentos td {
-        padding: 8px 3px;
-        font-size: 10px;
-    }
-
-    .btn-edit,
-    .btn-delete {
-        font-size: 16px;
-        padding: 2px 4px;
+        font-size: 11px;
     }
 
     .modal-overlay {
@@ -891,118 +641,16 @@
 
     .modal-content {
         padding: 20px 16px;
-        max-width: 100%;
-        max-height: 95vh;
         border-radius: 20px 20px 0 0;
-    }
-
-    .modal-content h2 {
-        font-size: 18px;
-        margin-bottom: 16px;
-        padding-bottom: 12px;
-    }
-
-    .form-row {
-        grid-template-columns: 1fr;
-        gap: 10px;
-        margin-bottom: 12px;
-    }
-
-    .form-group {
-        margin-bottom: 14px;
-    }
-
-    .form-group label {
-        font-size: 12px;
-        margin-bottom: 6px;
-    }
-
-    .form-group input,
-    .form-group select {
-        padding: 10px 12px;
-        font-size: 14px;
-    }
-
-    .meta-progress {
-        gap: 8px;
-        margin-top: 6px;
-    }
-
-    .meta-progress span {
-        font-size: 11px;
-        min-width: 40px;
+        max-height: 95vh;
     }
 
     .modal-buttons {
         flex-direction: column;
-        gap: 8px;
-        margin-top: 20px;
-        padding-top: 20px;
     }
 
     .btn-cancel,
     .btn-save {
         width: 100%;
-        padding: 12px;
-        font-size: 14px;
-    }
-}
-
-/* Mobile Muito Pequeno (< 400px) */
-@media screen and (max-width: 400px) {
-    .investimento-container {
-        padding: 10px 12px;
-    }
-
-    .investimento-title {
-        font-size: 18px;
-    }
-
-    .card-resumo {
-        padding: 14px;
-    }
-
-    .card-value {
-        font-size: 16px;
-    }
-
-    .grafico-card {
-        padding: 12px;
-    }
-
-    .chart-wrapper {
-        height: 180px;
-    }
-
-    .tabela-investimentos {
-        min-width: 600px;
-        font-size: 9px;
-    }
-
-    .tabela-investimentos th,
-    .tabela-investimentos td {
-        padding: 6px 2px;
-    }
-}
-
-/* Ajustes para impressão */
-@media print {
-    .investimento-container {
-        margin-left: 0;
-        padding: 20px;
-        background: white;
-    }
-
-    .header-actions,
-    .btn-edit,
-    .btn-delete {
-        display: none;
-    }
-
-    .card-resumo,
-    .grafico-card,
-    .tabela-container {
-        break-inside: avoid;
-        page-break-inside: avoid;
     }
 }
