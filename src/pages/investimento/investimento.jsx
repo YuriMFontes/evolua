@@ -4,6 +4,7 @@ import Sidebar from "../../componentes/side-bar/side-bar"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { supabase } from "../../lib/supabase"
 import { useAuth } from "../../contexts/AuthContext"
+import { buscarPrecosMultiplos } from "../../lib/brapi"
 import { 
     Doughnut
 } from "react-chartjs-2"
@@ -47,7 +48,83 @@ export default function Investimento(){
         data_compra: ""
     })
     const [formError, setFormError] = useState("")
+    const [atualizandoPrecos, setAtualizandoPrecos] = useState(false)
 
+    // Atualizar preços dos investimentos via API
+    const atualizarPrecosInvestimentos = useCallback(async (investimentosList) => {
+        if (!user || !investimentosList || investimentosList.length === 0) {
+            console.log("[Investimentos] Nenhum investimento para atualizar")
+            return
+        }
+        
+        try {
+            setAtualizandoPrecos(true)
+            console.log("[Investimentos] Iniciando atualização de preços...")
+            
+            // Buscar tickers únicos
+            const tickersUnicos = [...new Set(investimentosList.map(inv => inv.ticker))]
+            console.log("[Investimentos] Tickers a buscar:", tickersUnicos)
+            
+            // Buscar preços da API
+            const precos = await buscarPrecosMultiplos(tickersUnicos)
+            console.log("[Investimentos] Preços recebidos da API:", precos)
+            
+            if (Object.keys(precos).length === 0) {
+                console.warn("[Investimentos] Nenhum preço foi encontrado na API")
+                setAtualizandoPrecos(false)
+                return
+            }
+            
+            // Atualizar cada investimento com o preço atual
+            const atualizacoes = investimentosList.map(async (inv) => {
+                const tickerUpper = inv.ticker.toUpperCase()
+                const dadosPreco = precos[tickerUpper]
+                
+                if (dadosPreco && dadosPreco.preco > 0) {
+                    const precoAtual = parseFloat(inv.preco_atual || inv.preco_medio)
+                    const novoPreco = dadosPreco.preco
+                    
+                    // Sempre atualizar para garantir que está sincronizado
+                    console.log(`[Investimentos] Atualizando ${inv.ticker}: R$ ${precoAtual} -> R$ ${novoPreco}`)
+                    
+                    const { error } = await supabase
+                        .from("investimentos")
+                        .update({ preco_atual: novoPreco })
+                        .eq("id", inv.id)
+                    
+                    if (error) {
+                        console.error(`[Investimentos] Erro ao atualizar preço de ${inv.ticker}:`, error)
+                    } else {
+                        console.log(`[Investimentos] Preço de ${inv.ticker} atualizado com sucesso`)
+                    }
+                } else {
+                    console.warn(`[Investimentos] Preço não encontrado para ${inv.ticker}`)
+                }
+            })
+            
+            await Promise.all(atualizacoes)
+            console.log("[Investimentos] Todas as atualizações concluídas")
+            
+            // Recarregar investimentos atualizados
+            const { data, error } = await supabase
+                .from("investimentos")
+                .select("*")
+                .eq("user_id", user.id)
+                .order("data_compra", { ascending: false })
+            
+            if (!error && data) {
+                console.log("[Investimentos] Investimentos recarregados:", data.length)
+                setInvestimentos(data)
+            } else if (error) {
+                console.error("[Investimentos] Erro ao recarregar:", error)
+            }
+        } catch (error) {
+            console.error("[Investimentos] Erro ao atualizar preços:", error)
+            alert("Erro ao atualizar preços. Verifique o console para mais detalhes.")
+        } finally {
+            setAtualizandoPrecos(false)
+        }
+    }, [user])
 
     // Buscar investimentos
     const fetchInvestimentos = useCallback(async () => {
@@ -62,13 +139,23 @@ export default function Investimento(){
                 .order("data_compra", { ascending: false })
 
             if (error) throw error
-            setInvestimentos(data || [])
+            
+            const investimentosData = data || []
+            setInvestimentos(investimentosData)
+            
+            // Atualizar preços automaticamente via API (em background, sem bloquear)
+            if (investimentosData.length > 0) {
+                // Usar setTimeout para não bloquear a renderização
+                setTimeout(async () => {
+                    await atualizarPrecosInvestimentos(investimentosData)
+                }, 1000)
+            }
         } catch (error) {
             console.error("Erro ao buscar investimentos:", error)
         } finally {
             setLoading(false)
         }
-    }, [user])
+    }, [user, atualizarPrecosInvestimentos])
 
     useEffect(() => {
         fetchInvestimentos()
@@ -96,9 +183,10 @@ export default function Investimento(){
         }, 0)
     }, [investimentos])
 
-    // Calcular valor atual da carteira
+    // Calcular valor atual da carteira (usa preço atual da API ou preço médio como fallback)
     const valorAtualCarteira = useMemo(() => {
         return investimentos.reduce((sum, inv) => {
+            // Prioriza preco_atual (atualizado pela API), senão usa preco_medio
             const precoAtual = parseFloat(inv.preco_atual || inv.preco_medio)
             const valorAtual = parseFloat(inv.quantidade) * precoAtual
             return sum + valorAtual
@@ -221,13 +309,28 @@ export default function Investimento(){
         }
 
         try {
+            // Buscar preço atual da API ao salvar novo investimento
+            let precoAtual = parseFloat(formData.preco_medio)
+            const ticker = formData.ticker.trim().toUpperCase()
+            
+            try {
+                const { buscarPrecoAtual } = await import("../../lib/brapi")
+                const resultado = await buscarPrecoAtual(ticker)
+                if (resultado.sucesso && resultado.preco > 0) {
+                    precoAtual = resultado.preco
+                }
+            } catch (apiError) {
+                console.log("Não foi possível buscar preço da API, usando preço médio:", apiError)
+                // Continua com o preço médio se a API falhar
+            }
+            
             const dataToSave = {
                 user_id: user.id,
                 tipo_ativo: formData.tipo_ativo,
-                ticker: formData.ticker.trim().toUpperCase(),
+                ticker: ticker,
                 quantidade: parseFloat(formData.quantidade),
                 preco_medio: parseFloat(formData.preco_medio),
-                preco_atual: parseFloat(formData.preco_medio), // Usa preço médio como padrão
+                preco_atual: precoAtual, // Preço atual da API ou preço médio como fallback
                 taxas: 0,
                 data_compra: formData.data_compra
             }
@@ -320,6 +423,14 @@ export default function Investimento(){
                 <div className="investimento-header">
                     <h1 className="investimento-title">Investimentos</h1>
                     <div className="header-actions">
+                        <button 
+                            className="btn-secondary" 
+                            onClick={() => atualizarPrecosInvestimentos(investimentos)}
+                            disabled={atualizandoPrecos || investimentos.length === 0}
+                            title="Atualizar preços dos ativos"
+                        >
+                            {atualizandoPrecos ? "Atualizando..." : "🔄 Atualizar Preços"}
+                        </button>
                         <button className="btn-primary" onClick={() => {
                             setEditingId(null)
                             setFormError("")
@@ -334,9 +445,14 @@ export default function Investimento(){
                 {/* Cards de resumo */}
                 <div className="cards-resumo">
                     <div className="card-resumo">
-                        <div className="card-label">Patrimônio Total</div>
+                        <div className="card-label">
+                            Patrimônio Total
+                            {atualizandoPrecos && <span style={{ fontSize: "10px", marginLeft: "8px", color: "#667eea" }}>🔄 Atualizando...</span>}
+                        </div>
                         <div className="card-value">{formatarMoeda(valorAtualCarteira)}</div>
-                        <div className="card-change positive">+{formatarMoeda(lucroPrejuizo)} ({rentabilidadePercentual}%)</div>
+                        <div className={`card-change ${lucroPrejuizo >= 0 ? "positive" : "negative"}`}>
+                            {lucroPrejuizo >= 0 ? "+" : ""}{formatarMoeda(lucroPrejuizo)} ({rentabilidadePercentual}%)
+                        </div>
                     </div>
                     <div className="card-resumo">
                         <div className="card-label">Valor Investido</div>
@@ -423,7 +539,12 @@ export default function Investimento(){
                                             <td>{TIPOS_ATIVO.find(t => t.value === inv.tipo_ativo)?.label || inv.tipo_ativo}</td>
                                             <td>{inv.quantidade}</td>
                                             <td>{formatarMoeda(inv.preco_medio)}</td>
-                                            <td>{formatarMoeda(inv.preco_atual || inv.preco_medio)}</td>
+                                            <td>
+                                                {formatarMoeda(inv.preco_atual || inv.preco_medio)}
+                                                {inv.preco_atual && inv.preco_atual !== inv.preco_medio && (
+                                                    <span style={{ fontSize: "10px", marginLeft: "4px", color: "#10b981" }} title="Preço atualizado via API">✓</span>
+                                                )}
+                                            </td>
                                             <td>{formatarMoeda(valorInvestido)}</td>
                                             <td>{formatarMoeda(valorAtual)}</td>
                                             <td className={lucro >= 0 ? "positive" : "negative"}>

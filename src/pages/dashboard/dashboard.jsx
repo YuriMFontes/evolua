@@ -59,6 +59,7 @@ export default function Dashboard(){
     const { user } = useAuth()
     const [financeiro, setFinanceiro] = useState([])
     const [ultimasTransacoes, setUltimasTransacoes] = useState([])
+    const [investimentos, setInvestimentos] = useState([])
     const [loading, setLoading] = useState(true)
 
     // Buscar dados do financeiro do mês atual
@@ -116,10 +117,66 @@ export default function Dashboard(){
         }
     }, [user])
 
+    // Buscar investimentos
+    const fetchInvestimentos = useCallback(async () => {
+        if (!user) return
+        
+        try {
+            const { data, error } = await supabase
+                .from("investimentos")
+                .select("*")
+                .eq("user_id", user.id)
+                .order("data_compra", { ascending: false })
+
+            if (error) throw error
+            setInvestimentos(data || [])
+        } catch (error) {
+            console.error("Erro ao buscar investimentos:", error)
+        }
+    }, [user])
+
+    // Atualizar preços dos investimentos via API (opcional, em background)
+    useEffect(() => {
+        if (investimentos.length > 0) {
+            // Atualizar preços em background a cada 5 minutos
+            const interval = setInterval(async () => {
+                try {
+                    const { buscarPrecosMultiplos } = await import("../../lib/brapi")
+                    const tickersUnicos = [...new Set(investimentos.map(inv => inv.ticker))]
+                    const precos = await buscarPrecosMultiplos(tickersUnicos)
+                    
+                    // Atualizar preços no banco
+                    const atualizacoes = investimentos.map(async (inv) => {
+                        const tickerUpper = inv.ticker.toUpperCase()
+                        const dadosPreco = precos[tickerUpper]
+                        
+                        if (dadosPreco && dadosPreco.preco > 0) {
+                            const precoAtual = parseFloat(inv.preco_atual || inv.preco_medio)
+                            if (Math.abs(precoAtual - dadosPreco.preco) > 0.01) {
+                                await supabase
+                                    .from("investimentos")
+                                    .update({ preco_atual: dadosPreco.preco })
+                                    .eq("id", inv.id)
+                            }
+                        }
+                    })
+                    
+                    await Promise.all(atualizacoes)
+                    fetchInvestimentos() // Recarregar dados atualizados
+                } catch (error) {
+                    console.error("Erro ao atualizar preços no dashboard:", error)
+                }
+            }, 5 * 60 * 1000) // 5 minutos
+            
+            return () => clearInterval(interval)
+        }
+    }, [investimentos, user, fetchInvestimentos])
+
     useEffect(() => {
         fetchFinanceiro()
         fetchUltimasTransacoes()
-    }, [fetchFinanceiro, fetchUltimasTransacoes])
+        fetchInvestimentos()
+    }, [fetchFinanceiro, fetchUltimasTransacoes, fetchInvestimentos])
 
     // Calcular totais
     const calcularTotais = () => {
@@ -170,6 +227,33 @@ export default function Dashboard(){
     }
 
     const { receitas, despesas } = calcularTotais()
+
+    // Calcular valores dos investimentos
+    const calcularInvestimentos = useMemo(() => {
+        const valorTotalInvestido = investimentos.reduce((sum, inv) => {
+            const investido = (parseFloat(inv.quantidade) * parseFloat(inv.preco_medio)) + parseFloat(inv.taxas || 0)
+            return sum + investido
+        }, 0)
+
+        const valorAtualCarteira = investimentos.reduce((sum, inv) => {
+            const precoAtual = parseFloat(inv.preco_atual || inv.preco_medio)
+            const valorAtual = parseFloat(inv.quantidade) * precoAtual
+            return sum + valorAtual
+        }, 0)
+
+        const lucroPrejuizo = valorAtualCarteira - valorTotalInvestido
+        const rentabilidadePercentual = valorTotalInvestido > 0 
+            ? ((lucroPrejuizo / valorTotalInvestido) * 100).toFixed(2) 
+            : 0
+
+        return {
+            valorTotalInvestido,
+            valorAtualCarteira,
+            lucroPrejuizo,
+            rentabilidadePercentual,
+            totalAtivos: investimentos.length
+        }
+    }, [investimentos])
 
     // Preparar dados do gráfico
     const chartData = useMemo(() => {
@@ -272,7 +356,14 @@ export default function Dashboard(){
                     <section className="section-dashboard">
                     <div className="content-section">
                             <h2 className="title-section">Investimentos</h2>
-                            <h2 className="subtitle-section">Informativos</h2>
+                            <h2 className="subtitle-section">
+                                {loading ? "Carregando..." : formatarMoeda(calcularInvestimentos.valorAtualCarteira)}
+                            </h2>
+                            {!loading && calcularInvestimentos.totalAtivos > 0 && (
+                                <p className={`investimentos-change ${calcularInvestimentos.lucroPrejuizo >= 0 ? "positive" : "negative"}`}>
+                                    {calcularInvestimentos.lucroPrejuizo >= 0 ? "+" : ""}{formatarMoeda(calcularInvestimentos.lucroPrejuizo)} ({calcularInvestimentos.rentabilidadePercentual}%)
+                                </p>
+                            )}
                         </div>
                     </section>
                 </div>
@@ -320,8 +411,41 @@ export default function Dashboard(){
                         <p>Metas aqui</p>
                     </div>
                     <div className="dashboard-container-saude">
-                        <h1 className="dashboard-container-title">Investimentos</h1>
-                        <p>Metas aqui</p>
+                        <h1 className="dashboard-container-title">Resumo de Investimentos</h1>
+                        {loading ? (
+                            <p style={{ textAlign: "center", color: "#999", marginTop: "20px" }}>Carregando...</p>
+                        ) : investimentos.length === 0 ? (
+                            <p style={{ textAlign: "center", color: "#999", marginTop: "20px" }}>
+                                Nenhum investimento cadastrado
+                            </p>
+                        ) : (
+                            <div className="investimentos-resumo">
+                                <div className="investimentos-item">
+                                    <span className="investimentos-label">Patrimônio Total:</span>
+                                    <span className="investimentos-value">
+                                        {formatarMoeda(calcularInvestimentos.valorAtualCarteira)}
+                                    </span>
+                                </div>
+                                <div className="investimentos-item">
+                                    <span className="investimentos-label">Valor Investido:</span>
+                                    <span className="investimentos-value">
+                                        {formatarMoeda(calcularInvestimentos.valorTotalInvestido)}
+                                    </span>
+                                </div>
+                                <div className="investimentos-item">
+                                    <span className="investimentos-label">Lucro/Prejuízo:</span>
+                                    <span className={`investimentos-value ${calcularInvestimentos.lucroPrejuizo >= 0 ? "positive" : "negative"}`}>
+                                        {calcularInvestimentos.lucroPrejuizo >= 0 ? "+" : ""}{formatarMoeda(calcularInvestimentos.lucroPrejuizo)}
+                                    </span>
+                                </div>
+                                <div className="investimentos-item investimentos-item-last">
+                                    <span className="investimentos-label">Total de Ativos:</span>
+                                    <span className="investimentos-value">
+                                        {calcularInvestimentos.totalAtivos}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
