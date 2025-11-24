@@ -25,12 +25,7 @@ ChartJS.register(
 const TIPOS_ATIVO = [
     { value: "acao", label: "Ação" },
     { value: "fii", label: "FII" },
-    { value: "cripto", label: "Criptomoeda" },
-    { value: "renda_fixa", label: "Renda Fixa" },
-    { value: "multimercado", label: "Multimercado" },
-    { value: "etf", label: "ETF" },
     { value: "bdr", label: "BDR" },
-    { value: "outros", label: "Outros" }
 ]
 
 export default function Investimento(){
