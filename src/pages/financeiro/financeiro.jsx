@@ -22,7 +22,8 @@ export default function Financeiro(){
         vencimento: "",
         status: "pendente",
         parcelado: false,
-        quantidadeParcelas: 1
+        quantidadeParcelas: 1,
+        contaFixa: false
     })
 
     // Buscar dados do financeiro
@@ -128,7 +129,31 @@ export default function Financeiro(){
             let statusFinal = formData.tipo === "receita" ? "pago" : calcularStatus(formData.vencimento, formData.status)
 
             // Se for parcelado, criar múltiplos registros
-            if (formData.parcelado && formData.quantidadeParcelas > 1 && formData.tipo === "despesa") {
+            if (formData.tipo === "despesa" && formData.contaFixa) {
+                const registrosFixos = []
+                const dataBase = new Date(formData.vencimento + "T00:00:00")
+
+                for (let i = 0; i < 12; i++) {
+                    const dataMes = new Date(dataBase)
+                    dataMes.setMonth(dataBase.getMonth() + i)
+                    const labelMes = `${String(dataMes.getMonth() + 1).padStart(2, '0')}/${dataMes.getFullYear()}`
+
+                    registrosFixos.push({
+                        user_id: user.id,
+                        tipo: formData.tipo,
+                        descricao: `${formData.descricao} - ${labelMes}`,
+                        valor: parseFloat(formData.valor),
+                        vencimento: dataMes.toISOString().split('T')[0],
+                        status: calcularStatus(dataMes.toISOString().split('T')[0], formData.status)
+                    })
+                }
+
+                const { error } = await supabase
+                    .from("financeiro")
+                    .insert(registrosFixos)
+
+                if (error) throw error
+            } else if (formData.parcelado && formData.quantidadeParcelas > 1 && formData.tipo === "despesa") {
                 const registros = []
                 const valorParcela = parseFloat(formData.valor) / formData.quantidadeParcelas
                 const dataBase = new Date(formData.vencimento + "T00:00:00")
@@ -176,7 +201,8 @@ export default function Financeiro(){
                 vencimento: "",
                 status: "pendente",
                 parcelado: false,
-                quantidadeParcelas: 1
+                quantidadeParcelas: 1,
+                contaFixa: false
             })
             setShowModal(false)
             fetchFinanceiro()
@@ -456,17 +482,20 @@ export default function Financeiro(){
                                 {formData.tipo === "despesa" && (
                                     <>
                                         <div className="form-group checkbox-inline">
-                                                <label>
-                                                    <input
+                                            <label>
+                                                <input
                                                     type="checkbox"
                                                     checked={formData.parcelado}
-                                                    onChange={(e) =>
-                                                        setFormData({ ...formData, parcelado: e.target.checked })
-                                                    }
-                                                    />
-                                                    Despesa Parcelada
-                                                </label>
-                                                </div>
+                                                    onChange={(e) => setFormData(prev => ({
+                                                        ...prev,
+                                                        parcelado: e.target.checked,
+                                                        contaFixa: e.target.checked ? false : prev.contaFixa
+                                                    }))}
+                                                    disabled={formData.contaFixa}
+                                                />
+                                                Despesa Parcelada
+                                            </label>
+                                        </div>
                                         {formData.parcelado && (
                                             <div className="form-group">
                                                 <label>Quantidade de Parcelas *</label>
@@ -494,6 +523,23 @@ export default function Financeiro(){
                                                 )}
                                             </div>
                                         )}
+                                        <div className="form-group checkbox-inline">
+                                            <label>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.contaFixa}
+                                                    onChange={(e) => setFormData(prev => ({
+                                                        ...prev,
+                                                        contaFixa: e.target.checked,
+                                                        parcelado: e.target.checked ? false : prev.parcelado
+                                                    }))}
+                                                />
+                                                Conta fixa (replicar pelos próximos 12 meses)
+                                            </label>
+                                            <p className="checkbox-hint">
+                                                Começando da data escolhida, criaremos um lançamento por mês durante 12 meses.
+                                            </p>
+                                        </div>
                                         <div className="form-group">
                                             <label>Status Inicial *</label>
                                             <select
