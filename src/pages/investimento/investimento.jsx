@@ -4,7 +4,7 @@ import Sidebar from "../../componentes/side-bar/side-bar"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { supabase } from "../../lib/supabase"
 import { useAuth } from "../../contexts/AuthContext"
-import { buscarPrecosMultiplos } from "../../lib/brapi"
+import { buscarPrecosMultiplos, buscarPrecoAtual } from "../../lib/brapi"
 import { 
     Doughnut
 } from "react-chartjs-2"
@@ -49,16 +49,23 @@ export default function Investimento(){
     })
     const [formError, setFormError] = useState("")
     const [atualizandoPrecos, setAtualizandoPrecos] = useState(false)
+    const [cotacaoAtual, setCotacaoAtual] = useState(null)
+    const [cotacaoLoading, setCotacaoLoading] = useState(false)
+    const [cotacaoErro, setCotacaoErro] = useState("")
+    const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null)
+    const [cotacoesTempoReal, setCotacoesTempoReal] = useState({})
 
     // Atualizar preços dos investimentos via API
-    const atualizarPrecosInvestimentos = useCallback(async (investimentosList) => {
+    const atualizarPrecosInvestimentos = useCallback(async (investimentosList, { silencioso = false } = {}) => {
         if (!user || !investimentosList || investimentosList.length === 0) {
             console.log("[Investimentos] Nenhum investimento para atualizar")
             return
         }
         
         try {
-            setAtualizandoPrecos(true)
+            if (!silencioso) {
+                setAtualizandoPrecos(true)
+            }
             console.log("[Investimentos] Iniciando atualização de preços...")
             
             // Buscar tickers únicos
@@ -68,11 +75,11 @@ export default function Investimento(){
             // Buscar preços da API
             const precos = await buscarPrecosMultiplos(tickersUnicos)
             console.log("[Investimentos] Preços recebidos da API:", precos)
-            
+
             if (Object.keys(precos).length === 0) {
                 console.warn("[Investimentos] Nenhum preço foi encontrado na API")
-                setAtualizandoPrecos(false)
-                return
+            } else {
+                setCotacoesTempoReal(prev => ({ ...prev, ...precos }))
             }
             
             // Atualizar cada investimento com o preço atual
@@ -115,6 +122,7 @@ export default function Investimento(){
             if (!error && data) {
                 console.log("[Investimentos] Investimentos recarregados:", data.length)
                 setInvestimentos(data)
+                setUltimaAtualizacao(new Date())
             } else if (error) {
                 console.error("[Investimentos] Erro ao recarregar:", error)
             }
@@ -122,7 +130,9 @@ export default function Investimento(){
             console.error("[Investimentos] Erro ao atualizar preços:", error)
             alert("Erro ao atualizar preços. Verifique o console para mais detalhes.")
         } finally {
-            setAtualizandoPrecos(false)
+            if (!silencioso) {
+                setAtualizandoPrecos(false)
+            }
         }
     }, [user])
 
@@ -161,6 +171,24 @@ export default function Investimento(){
         fetchInvestimentos()
     }, [fetchInvestimentos])
 
+    useEffect(() => {
+        if (!investimentos.length) return
+
+        const intervalo = setInterval(() => {
+            atualizarPrecosInvestimentos(investimentos, { silencioso: true })
+        }, 60000)
+
+        return () => clearInterval(intervalo)
+    }, [investimentos, atualizarPrecosInvestimentos])
+
+    useEffect(() => {
+        if (!showModal) {
+            setCotacaoAtual(null)
+            setCotacaoErro("")
+            setCotacaoLoading(false)
+        }
+    }, [showModal])
+
     // Formatar moeda
     const formatarMoeda = (valor) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -169,11 +197,21 @@ export default function Investimento(){
         }).format(valor || 0)
     }
 
-    // Formatar data
-    const formatarData = (data) => {
-        if (!data) return ""
-        return new Date(data).toLocaleDateString('pt-BR')
+    const formatarHorarioAtualizacao = (data) => {
+        if (!data) return "Nunca atualizado"
+        return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     }
+
+    const obterDadosTempoReal = useCallback((ticker) => {
+        if (!ticker) return null
+        return cotacoesTempoReal[ticker.toUpperCase()] || null
+    }, [cotacoesTempoReal])
+
+    const obterPrecoAtual = useCallback((inv) => {
+        const dados = obterDadosTempoReal(inv.ticker)
+        if (dados?.preco) return dados.preco
+        return parseFloat(inv.preco_atual || inv.preco_medio)
+    }, [obterDadosTempoReal])
 
     // Calcular valor total investido
     const valorTotalInvestido = useMemo(() => {
@@ -186,12 +224,11 @@ export default function Investimento(){
     // Calcular valor atual da carteira (usa preço atual da API ou preço médio como fallback)
     const valorAtualCarteira = useMemo(() => {
         return investimentos.reduce((sum, inv) => {
-            // Prioriza preco_atual (atualizado pela API), senão usa preco_medio
-            const precoAtual = parseFloat(inv.preco_atual || inv.preco_medio)
+            const precoAtual = obterPrecoAtual(inv)
             const valorAtual = parseFloat(inv.quantidade) * precoAtual
             return sum + valorAtual
         }, 0)
-    }, [investimentos])
+    }, [investimentos, obterPrecoAtual])
 
     // Calcular lucro/prejuízo
     const lucroPrejuizo = useMemo(() => {
@@ -204,6 +241,43 @@ export default function Investimento(){
         return ((lucroPrejuizo / valorTotalInvestido) * 100).toFixed(2)
     }, [lucroPrejuizo, valorTotalInvestido])
 
+    const handleBuscarCotacao = useCallback(async () => {
+        if (!formData.ticker || formData.ticker.trim() === "") {
+            setFormError("Informe o ticker antes de buscar a cotação")
+            return
+        }
+
+        setCotacaoErro("")
+        setCotacaoLoading(true)
+
+        try {
+            const ticker = formData.ticker.trim().toUpperCase()
+            const resultado = await buscarPrecoAtual(ticker)
+
+            if (!resultado.sucesso || !resultado.preco) {
+                throw new Error(resultado.erro || "Ticker não encontrado")
+            }
+
+            setCotacaoAtual({
+                ...resultado,
+                ticker
+            })
+
+            setFormData(prev => ({
+                ...prev,
+                ticker,
+                preco_medio: resultado.preco ? resultado.preco.toFixed(2) : prev.preco_medio,
+                data_compra: prev.data_compra || (resultado.atualizadoEm ? resultado.atualizadoEm.split("T")[0] : prev.data_compra)
+            }))
+        } catch (error) {
+            console.error("[Investimentos] Erro ao buscar cotação:", error)
+            setCotacaoAtual(null)
+            setCotacaoErro(error.message || "Não foi possível buscar a cotação")
+        } finally {
+            setCotacaoLoading(false)
+        }
+    }, [formData.ticker])
+
 
 
     // Agrupar por tipo de ativo - mostrar quantidade
@@ -215,11 +289,11 @@ export default function Investimento(){
                 grupos[tipo] = { quantidade: 0, valor: 0 }
             }
             grupos[tipo].quantidade += parseFloat(inv.quantidade || 0)
-            const precoAtual = parseFloat(inv.preco_atual || inv.preco_medio || 0)
+            const precoAtual = obterPrecoAtual(inv)
             grupos[tipo].valor += parseFloat(inv.quantidade || 0) * precoAtual
         })
         return grupos
-    }, [investimentos])
+    }, [investimentos, obterPrecoAtual])
 
 
     // Dados para gráfico de pizza - composição por tipo (quantidade)
@@ -312,16 +386,19 @@ export default function Investimento(){
             // Buscar preço atual da API ao salvar novo investimento
             let precoAtual = parseFloat(formData.preco_medio)
             const ticker = formData.ticker.trim().toUpperCase()
-            
-            try {
-                const { buscarPrecoAtual } = await import("../../lib/brapi")
-                const resultado = await buscarPrecoAtual(ticker)
-                if (resultado.sucesso && resultado.preco > 0) {
-                    precoAtual = resultado.preco
+
+            if (cotacaoAtual && cotacaoAtual.ticker === ticker && cotacaoAtual.preco) {
+                precoAtual = cotacaoAtual.preco
+            } else {
+                try {
+                    const resultado = await buscarPrecoAtual(ticker)
+                    if (resultado.sucesso && resultado.preco > 0) {
+                        precoAtual = resultado.preco
+                    }
+                } catch (apiError) {
+                    console.log("Não foi possível buscar preço da API, usando preço médio:", apiError)
+                    // Continua com o preço médio se a API falhar
                 }
-            } catch (apiError) {
-                console.log("Não foi possível buscar preço da API, usando preço médio:", apiError)
-                // Continua com o preço médio se a API falhar
             }
             
             const dataToSave = {
@@ -354,6 +431,8 @@ export default function Investimento(){
             setFormData({
                 tipo_ativo: "", ticker: "", quantidade: "", preco_medio: "", data_compra: ""
             })
+            setCotacaoAtual(null)
+            setCotacaoErro("")
             fetchInvestimentos()
         } catch (error) {
             console.error("Erro ao salvar investimento:", error)
@@ -379,6 +458,8 @@ export default function Investimento(){
     const handleEdit = (inv) => {
         setEditingId(inv.id)
         setFormError("")
+        setCotacaoAtual(null)
+        setCotacaoErro("")
         setFormData({
             tipo_ativo: inv.tipo_ativo || "",
             ticker: inv.ticker || "",
@@ -411,7 +492,7 @@ export default function Investimento(){
     // Calcular percentual da carteira por ativo
     const percentualCarteira = (inv) => {
         if (valorAtualCarteira === 0) return 0
-        const valorAtual = parseFloat(inv.quantidade) * parseFloat(inv.preco_atual || inv.preco_medio)
+        const valorAtual = parseFloat(inv.quantidade) * obterPrecoAtual(inv)
         return ((valorAtual / valorAtualCarteira) * 100).toFixed(2)
     }
 
@@ -423,6 +504,9 @@ export default function Investimento(){
                 <div className="investimento-header">
                     <h1 className="investimento-title">Investimentos</h1>
                     <div className="header-actions">
+                        <div className="update-meta">
+                            {atualizandoPrecos ? "Atualizando cotações..." : `Última atualização: ${formatarHorarioAtualizacao(ultimaAtualizacao)}`}
+                        </div>
                         <button 
                             className="btn-secondary" 
                             onClick={() => atualizarPrecosInvestimentos(investimentos)}
@@ -437,6 +521,8 @@ export default function Investimento(){
                             setFormData({
                                 tipo_ativo: "", ticker: "", quantidade: "", preco_medio: "", data_compra: ""
                             })
+                            setCotacaoAtual(null)
+                            setCotacaoErro("")
                             setShowModal(true)
                         }}>+ Novo Investimento</button>
                     </div>
@@ -519,6 +605,7 @@ export default function Investimento(){
                                     <th>Quantidade</th>
                                     <th>Preço Médio</th>
                                     <th>Preço Atual</th>
+                                    <th>Variação</th>
                                     <th>Valor Investido</th>
                                     <th>Valor Atual</th>
                                     <th>Lucro/Prejuízo</th>
@@ -528,10 +615,12 @@ export default function Investimento(){
                             </thead>
                             <tbody>
                                 {investimentos.map(inv => {
+                                    const precoAtual = obterPrecoAtual(inv)
                                     const valorInvestido = parseFloat(inv.quantidade) * parseFloat(inv.preco_medio) + parseFloat(inv.taxas || 0)
-                                    const valorAtual = parseFloat(inv.quantidade) * parseFloat(inv.preco_atual || inv.preco_medio)
+                                    const valorAtual = parseFloat(inv.quantidade) * precoAtual
                                     const lucro = valorAtual - valorInvestido
                                     const rentabilidade = valorInvestido > 0 ? ((lucro / valorInvestido) * 100).toFixed(2) : 0
+                                    const variacaoTempoReal = obterDadosTempoReal(inv.ticker)?.variacao
 
                                     return (
                                         <tr key={inv.id}>
@@ -540,10 +629,15 @@ export default function Investimento(){
                                             <td>{inv.quantidade}</td>
                                             <td>{formatarMoeda(inv.preco_medio)}</td>
                                             <td>
-                                                {formatarMoeda(inv.preco_atual || inv.preco_medio)}
-                                                {inv.preco_atual && inv.preco_atual !== inv.preco_medio && (
+                                                {formatarMoeda(precoAtual)}
+                                                {(obterDadosTempoReal(inv.ticker)?.preco || inv.preco_atual) && (
                                                     <span style={{ fontSize: "10px", marginLeft: "4px", color: "#10b981" }} title="Preço atualizado via API">✓</span>
                                                 )}
+                                            </td>
+                                            <td className={variacaoTempoReal ? (variacaoTempoReal >= 0 ? "positive" : "negative") : ""}>
+                                                {typeof variacaoTempoReal === "number" && !Number.isNaN(variacaoTempoReal)
+                                                    ? `${variacaoTempoReal >= 0 ? "+" : ""}${variacaoTempoReal.toFixed(2)}%`
+                                                    : "—"}
                                             </td>
                                             <td>{formatarMoeda(valorInvestido)}</td>
                                             <td>{formatarMoeda(valorAtual)}</td>
@@ -568,6 +662,8 @@ export default function Investimento(){
                     <div className="modal-overlay" onClick={() => {
                         setShowModal(false)
                         setFormError("")
+                        setCotacaoAtual(null)
+                        setCotacaoErro("")
                     }}>
                         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                             <h2>{editingId ? "Editar" : "Novo"} Investimento</h2>
@@ -597,16 +693,52 @@ export default function Investimento(){
 
                                 <div className="form-group">
                                     <label>Ticker *</label>
-                                    <input
-                                        type="text"
-                                        value={formData.ticker}
-                                        onChange={(e) => {
-                                            setFormData({...formData, ticker: e.target.value.toUpperCase()})
-                                            setFormError("")
-                                        }}
-                                        placeholder="Ex: PETR4, ITUB4, HGLG11"
-                                        maxLength={10}
-                                    />
+                                    <div className="input-with-action">
+                                        <input
+                                            type="text"
+                                            value={formData.ticker}
+                                            onChange={(e) => {
+                                                setFormData({...formData, ticker: e.target.value.toUpperCase()})
+                                                setFormError("")
+                                                setCotacaoErro("")
+                                            }}
+                                            placeholder="Ex: PETR4, ITUB4, HGLG11"
+                                            maxLength={10}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="btn-quote"
+                                            onClick={handleBuscarCotacao}
+                                            disabled={cotacaoLoading || !formData.ticker || !formData.ticker.trim()}
+                                        >
+                                            {cotacaoLoading ? "Buscando..." : "Buscar cotação"}
+                                        </button>
+                                    </div>
+                                    {cotacaoErro && <p className="form-hint error">{cotacaoErro}</p>}
+                                    {cotacaoAtual && (
+                                        <div className="cotacao-info">
+                                            <div>
+                                                <strong>{cotacaoAtual.nome || cotacaoAtual.ticker}</strong>
+                                                <span className="cotacao-ticker">{cotacaoAtual.ticker}</span>
+                                            </div>
+                                            <div className="cotacao-valores">
+                                                <span className="cotacao-preco">{formatarMoeda(cotacaoAtual.preco)}</span>
+                                                {typeof cotacaoAtual.variacao === "number" && !Number.isNaN(cotacaoAtual.variacao) && (
+                                                    <span className={`cotacao-variacao ${cotacaoAtual.variacao >= 0 ? "positivo" : "negativo"}`}>
+                                                        {cotacaoAtual.variacao >= 0 ? "+" : ""}{cotacaoAtual.variacao.toFixed(2)}%
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {cotacaoAtual && parseFloat(formData.quantidade) > 0 && (
+                                        <p className="cotacao-total">
+                                            Valor estimado ({formData.quantidade} un.):{" "}
+                                            <strong>
+                                                {formatarMoeda(cotacaoAtual.preco * parseFloat(formData.quantidade))}
+                                            </strong>
+                                        </p>
+                                    )}
                                 </div>
                                 
                                 <div className="form-row">
@@ -657,6 +789,8 @@ export default function Investimento(){
                                     <button type="button" className="btn-cancel" onClick={() => {
                                         setShowModal(false)
                                         setFormError("")
+                                        setCotacaoAtual(null)
+                                        setCotacaoErro("")
                                     }}>
                                         Cancelar
                                     </button>

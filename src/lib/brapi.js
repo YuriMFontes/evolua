@@ -1,7 +1,47 @@
-// API Brapi - Cotações gratuitas de ações, FIIs, etc.
-// Documentação: https://brapi.dev/docs
 
 const BRAPI_BASE_URL = "https://brapi.dev/api"
+const BRAPI_TOKEN = process.env.REACT_APP_BRAPI_TOKEN || ""
+let tokenWarned = false
+
+const buildQuoteUrl = (symbol, params = {}) => {
+    const searchParams = new URLSearchParams(params)
+
+    if (BRAPI_TOKEN) {
+        searchParams.set("token", BRAPI_TOKEN)
+    } else if (!tokenWarned) {
+        console.warn("[Brapi] Token não configurado. Defina REACT_APP_BRAPI_TOKEN em um arquivo .env na raiz.")
+        tokenWarned = true
+    }
+
+    const queryString = searchParams.toString()
+    return `${BRAPI_BASE_URL}/quote/${symbol}${queryString ? `?${queryString}` : ""}`
+}
+
+const extrairDataAtualizacao = (resultado) => {
+    if (!resultado) return new Date().toISOString()
+
+    const { regularMarketTime, updatedAt } = resultado
+
+    if (regularMarketTime !== undefined && regularMarketTime !== null) {
+        const valorNumerico = Number(regularMarketTime)
+        if (!Number.isNaN(valorNumerico) && valorNumerico !== 0) {
+            const epochMs = valorNumerico > 1_000_000_000_000 ? valorNumerico : valorNumerico * 1000
+            const data = new Date(epochMs)
+            if (!Number.isNaN(data.getTime())) {
+                return data.toISOString()
+            }
+        }
+    }
+
+    if (updatedAt) {
+        const data = new Date(updatedAt)
+        if (!Number.isNaN(data.getTime())) {
+            return data.toISOString()
+        }
+    }
+
+    return new Date().toISOString()
+}
 
 /**
  * Busca o preço atual de um ticker
@@ -19,7 +59,7 @@ export const buscarPrecoAtual = async (ticker) => {
             // Pode ser ação ou FII, tenta primeiro como está
         }
         
-        const response = await fetch(`${BRAPI_BASE_URL}/quote/${tickerFormatado}`, {
+        const response = await fetch(buildQuoteUrl(tickerFormatado), {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -45,7 +85,8 @@ export const buscarPrecoAtual = async (ticker) => {
                     sucesso: true,
                     preco: preco,
                     variacao: variacao,
-                    nome: resultado.longName || resultado.shortName || resultado.name || tickerFormatado
+                    nome: resultado.longName || resultado.shortName || resultado.name || tickerFormatado,
+                    atualizadoEm: extrairDataAtualizacao(resultado)
                 }
             } else {
                 console.warn(`[Brapi] Preço inválido para ${tickerFormatado}:`, resultado)
@@ -82,7 +123,7 @@ export const buscarPrecosMultiplos = async (tickers) => {
         if (tickersLimpos.length === 0) return {}
         
         const tickersString = tickersLimpos.join(',')
-        const response = await fetch(`${BRAPI_BASE_URL}/quote/${tickersString}`, {
+        const response = await fetch(buildQuoteUrl(tickersString), {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -110,7 +151,8 @@ export const buscarPrecosMultiplos = async (tickers) => {
                         precos[ticker.toUpperCase()] = {
                             preco: preco,
                             variacao: variacao,
-                            nome: resultado.longName || resultado.shortName || resultado.name || ticker
+                            nome: resultado.longName || resultado.shortName || resultado.name || ticker,
+                            atualizadoEm: extrairDataAtualizacao(resultado)
                         }
                         console.log(`[Brapi] Preço atualizado para ${ticker}: R$ ${preco}`)
                     } else {

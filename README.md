@@ -29,7 +29,7 @@ O objetivo é oferecer uma plataforma **simples, responsiva e inteligente**, aju
 
 ### 📈 Investimentos
 - Visualização de investimentos cadastrados  
-- Acompanhamento básico  
+- Acompanhamento com atualização automática de cotações (Brapi)
 
 ### 🏋️ Saúde
 - Planejamento inicial de dieta  
@@ -60,3 +60,18 @@ O objetivo é oferecer uma plataforma **simples, responsiva e inteligente**, aju
   - **Integração com IA**  
 
 ---
+
+## ⚙️ Configuração das cotações (Brapi)
+
+As telas de investimentos utilizam a API pública do [Brapi](https://brapi.dev/) para preencher o preço dos ativos na data da compra e manter as variações em tempo quase real.  
+
+1. Crie um arquivo `.env` na raiz do projeto (mesmo nível do `package.json`).  
+2. Adicione sua chave da API Brapi:
+
+```
+REACT_APP_BRAPI_TOKEN=SUA_CHAVE_AQUI
+```
+
+3. Reinicie o `npm start`.  
+
+> Sem a chave, o sistema ainda funciona, mas as cotações em tempo real ficarão limitadas.

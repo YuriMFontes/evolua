@@ -37,6 +37,12 @@
     flex-wrap: wrap;
 }
 
+.update-meta {
+    font-size: 12px;
+    color: #4b5563;
+    font-weight: 500;
+}
+
 /* Botões */
 .btn-primary,
 .btn-secondary {
@@ -340,6 +346,106 @@
     font-weight: 600;
     color: #374151;
     margin-bottom: 8px;
+}
+
+.input-with-action {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.input-with-action input {
+    flex: 1;
+}
+
+.btn-quote {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0 18px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    min-width: 150px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.btn-quote:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.cotacao-info {
+    margin-top: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: linear-gradient(125deg, #ecfdf5, #d1fae5);
+    border: 1px solid #bbf7d0;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.cotacao-info strong {
+    font-size: 14px;
+    color: #065f46;
+}
+
+.cotacao-ticker {
+    display: block;
+    font-size: 12px;
+    color: #059669;
+    font-weight: 600;
+}
+
+.cotacao-valores {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cotacao-preco {
+    font-size: 16px;
+    font-weight: 700;
+    color: #047857;
+}
+
+.cotacao-variacao {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(4, 120, 87, 0.1);
+}
+
+.cotacao-variacao.positivo {
+    color: #047857;
+    background: rgba(16, 185, 129, 0.15);
+}
+
+.cotacao-variacao.negativo {
+    color: #b91c1c;
+    background: rgba(248, 113, 113, 0.15);
+}
+
+.cotacao-total {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #065f46;
+}
+
+.form-hint {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.form-hint.error {
+    color: #b91c1c;
 }
 
 .form-group input,
@@ -690,6 +796,15 @@ html.dark-mode .form-error {
 
 /* Mobile Landscape (576px - 768px) */
 @media screen and (max-width: 768px) {
+    .input-with-action {
+        flex-direction: column;
+    }
+
+    .btn-quote {
+        width: 100%;
+        justify-content: center;
+    }
+
     .investimento-container {
         padding: 16px 18px;
     }
