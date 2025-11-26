@@ -136,11 +136,6 @@
         gap: 16px;
     }
 
-    /* SIDEBAR ESCONDE */
-    .side-bar {
-        display: none;
-    }
-
     /* HEADER MOBILE */
     .header {
         height: 70px;

@@ -10,7 +10,11 @@ export default function Sidebar({ isOpen = false, onNavigate }) {
 
     return (
         <>
-            <aside className={`side-bar ${isOpen ? "side-bar--open" : ""}`}>
+            <aside
+                className={`side-bar ${isOpen ? "side-bar--open" : ""}`}
+                role="navigation"
+                aria-label="Menu lateral"
+            >
                 <button
                     type="button"
                     className="side-bar__close"
