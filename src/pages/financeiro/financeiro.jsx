@@ -400,13 +400,13 @@ export default function Financeiro(){
                                     <tbody>
                                         {financeiro.map(item => (
                                             <tr key={item.id}>
-                                                <td>{item.descricao}</td>
-                                                <td className={`tipo-badge tipo-${item.tipo}`}>
+                                                <td data-label="Conta">{item.descricao}</td>
+                                                <td data-label="Tipo" className={`tipo-badge tipo-${item.tipo}`}>
                                                     {item.tipo === "receita" ? "Receita" : "Despesa"}
                                                 </td>
-                                                <td>{formatarMoeda(item.valor)}</td>
-                                                <td>{formatarData(item.vencimento)}</td>
-                                                <td>
+                                                <td data-label="Valor">{formatarMoeda(item.valor)}</td>
+                                                <td data-label="Data/Vencimento">{formatarData(item.vencimento)}</td>
+                                                <td data-label="Status">
                                                     {item.tipo === "receita" ? (
                                                         <span className="status-select status-pago" style={{ cursor: "default" }}>
                                                             Recebido
@@ -423,7 +423,7 @@ export default function Financeiro(){
                                                         </select>
                                                     )}
                                                 </td>
-                                                <td>
+                                                <td data-label="Ações">
                                                     <button 
                                                         className="btn-deletar"
                                                         onClick={() => handleDelete(item.id)}
