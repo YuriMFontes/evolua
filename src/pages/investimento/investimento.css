@@ -1,13 +1,13 @@
 /* ======== INVESTIMENTOS - ESTILO PROFISSIONAL ======== */
 .investimento-container {
     flex: 1;
-    margin-left: 15vw;
-    margin-top: 60px;
+    margin-left: var(--sidebar-width, 260px);
+    margin-top: var(--header-height, 60px);
     padding: 30px 60px;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    min-height: calc(100vh - 60px);
+    min-height: calc(100vh - var(--header-height, 60px));
     transition: all 0.3s ease;
-    width: calc(100% - 15vw);
+    width: calc(100% - var(--sidebar-width, 260px));
     box-sizing: border-box;
 }
 
@@ -630,8 +630,8 @@ html.dark-mode .form-error {
 @media screen and (min-width: 1401px) {
     .investimento-container {
         padding: 40px 80px;
-        margin-left: 15vw;
-        width: calc(100% - 15vw);
+        margin-left: var(--sidebar-width, 260px);
+        width: calc(100% - var(--sidebar-width, 260px));
     }
 
     .graficos-grid {
@@ -647,16 +647,16 @@ html.dark-mode .form-error {
 @media screen and (max-width: 1400px) and (min-width: 1201px) {
     .investimento-container {
         padding: 30px 50px;
-        margin-left: 15vw;
-        width: calc(100% - 15vw);
+        margin-left: var(--sidebar-width, 260px);
+        width: calc(100% - var(--sidebar-width, 260px));
     }
 }
 
 /* Tablet Landscape / Desktop Pequeno (1000px - 1200px) */
 @media screen and (max-width: 1200px) and (min-width: 1001px) {
     .investimento-container {
-        margin-left: 15vw;
-        width: calc(100% - 15vw);
+        margin-left: var(--sidebar-width, 260px);
+        width: calc(100% - var(--sidebar-width, 260px));
         padding: 25px 40px;
     }
 

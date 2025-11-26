@@ -57,10 +57,19 @@ const categorizarDespesa = (descricao) => {
 export default function Dashboard(){
     const navigate = useNavigate();
     const { user } = useAuth()
+    const [isSidebarOpen, setSidebarOpen] = useState(false)
     const [financeiro, setFinanceiro] = useState([])
     const [ultimasTransacoes, setUltimasTransacoes] = useState([])
     const [investimentos, setInvestimentos] = useState([])
     const [loading, setLoading] = useState(true)
+
+    const toggleSidebar = useCallback(() => {
+        setSidebarOpen(prev => !prev)
+    }, [])
+
+    const closeSidebar = useCallback(() => {
+        setSidebarOpen(false)
+    }, [])
 
     // Buscar dados do financeiro do mês atual
     const fetchFinanceiro = useCallback(async () => {
@@ -332,8 +341,8 @@ export default function Dashboard(){
 
     return(
        <main>
-            <Header/>
-            <Sidebar/>
+            <Header onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen}/>
+            <Sidebar isOpen={isSidebarOpen} onNavigate={closeSidebar}/>
             <div className="dashboard">
                 <h1 className="title-dashboard">Dashboard</h1>
                 <div className="content-dashboard">

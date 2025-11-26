@@ -93,6 +93,20 @@
     cursor: pointer;
     color: #4a6cf7;
     transition: transform 0.2s ease, color 0.2s ease;
+    border: none;
+    background: transparent;
+    padding: 4px;
+    line-height: 1;
+}
+
+.hamburger:focus-visible {
+    outline: 2px solid rgba(74, 108, 247, 0.4);
+    outline-offset: 2px;
+    border-radius: 10px;
+}
+
+.hamburger.is-active {
+    color: #2f57f2;
 }
 
 /* ======== MOBILE RESPONSIVO ======== */

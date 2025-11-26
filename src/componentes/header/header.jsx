@@ -3,19 +3,31 @@ import { useAuth } from "../../contexts/AuthContext"
 import { useTheme } from "../../contexts/ThemeContext"
 import "./header.css"
 
-export default function Header() {
-    const { user, signOut } = useAuth();
-    const { darkMode, toggleDarkMode } = useTheme();
+export default function Header({ onToggleSidebar, isSidebarOpen = false }) {
+    const { user, signOut } = useAuth()
+    const { darkMode, toggleDarkMode } = useTheme()
     
     const handleLogout = async () => {
-        await signOut();
-    };
+        await signOut()
+    }
+
+    const handleHamburgerClick = () => {
+        if (typeof onToggleSidebar === "function") {
+            onToggleSidebar()
+        }
+    }
     
     return (
         <header className="header">
-            <div className="hamburger">
+            <button
+                type="button"
+                className={`hamburger ${isSidebarOpen ? "is-active" : ""}`}
+                aria-label="Alternar menu lateral"
+                aria-expanded={isSidebarOpen}
+                onClick={handleHamburgerClick}
+            >
                 ☰
-            </div>
+            </button>
             <a className="title" href="/dashboard">EVOLUA</a>
             <div className="perfil">
                 <button className="theme-toggle" onClick={toggleDarkMode} title={darkMode ? "Modo Claro" : "Modo Escuro"}>
@@ -28,5 +40,5 @@ export default function Header() {
                 </button>
             </div>
         </header>
-    );
+    )
 }

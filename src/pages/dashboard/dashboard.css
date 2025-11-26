@@ -18,8 +18,8 @@ main {
 /* DASHBOARD */
 .dashboard {
     flex: 1;
-    margin-left: 15vw;
-    margin-top: 60px;
+    margin-left: var(--sidebar-width, 260px);
+    margin-top: var(--header-height, 60px);
     padding: 20px 60px;
     background-color: #f5f5f5;
     transition: all 0.3s ease;

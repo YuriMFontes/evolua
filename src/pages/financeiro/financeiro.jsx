@@ -7,6 +7,7 @@ import { useAuth } from "../../contexts/AuthContext"
 
 export default function Financeiro(){
     const { user } = useAuth()
+    const [isSidebarOpen, setSidebarOpen] = useState(false)
     const [financeiro, setFinanceiro] = useState([])
     const [financeiroCompleto, setFinanceiroCompleto] = useState([])
     const [loading, setLoading] = useState(true)
@@ -25,6 +26,14 @@ export default function Financeiro(){
         quantidadeParcelas: 1,
         contaFixa: false
     })
+
+    const toggleSidebar = useCallback(() => {
+        setSidebarOpen(prev => !prev)
+    }, [])
+
+    const closeSidebar = useCallback(() => {
+        setSidebarOpen(false)
+    }, [])
 
     // Buscar dados do financeiro
     const fetchFinanceiro = useCallback(async () => {
@@ -320,8 +329,8 @@ export default function Financeiro(){
 
     return(
         <main>
-            <Header/>
-            <Sidebar/>
+            <Header onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen}/>
+            <Sidebar isOpen={isSidebarOpen} onNavigate={closeSidebar}/>
             <div className="financeiro">
                 <div className="title-container">
                     <h1 className="title-financeiro">Financeiro</h1>

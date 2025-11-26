@@ -30,6 +30,7 @@ const TIPOS_ATIVO = [
 
 export default function Investimento(){
     const { user } = useAuth()
+    const [isSidebarOpen, setSidebarOpen] = useState(false)
     const [investimentos, setInvestimentos] = useState([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
@@ -49,6 +50,14 @@ export default function Investimento(){
     const [cotacaoErro, setCotacaoErro] = useState("")
     const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null)
     const [cotacoesTempoReal, setCotacoesTempoReal] = useState({})
+
+    const toggleSidebar = useCallback(() => {
+        setSidebarOpen(prev => !prev)
+    }, [])
+
+    const closeSidebar = useCallback(() => {
+        setSidebarOpen(false)
+    }, [])
 
     // Atualizar preços dos investimentos via API
     const atualizarPrecosInvestimentos = useCallback(async (investimentosList, { silencioso = false } = {}) => {
@@ -493,8 +502,8 @@ export default function Investimento(){
 
     return (
         <main>
-            <Header/>
-            <Sidebar/>
+            <Header onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen}/>
+            <Sidebar isOpen={isSidebarOpen} onNavigate={closeSidebar}/>
             <div className="investimento-container">
                 <div className="investimento-header">
                     <h1 className="investimento-title">Investimentos</h1>

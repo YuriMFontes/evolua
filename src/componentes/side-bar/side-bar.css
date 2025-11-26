@@ -1,21 +1,57 @@
 /* ======== SIDEBAR ======== */
 .side-bar {
-    width: 15vw;
-    height: calc(100vh - 60px);
+    width: var(--sidebar-width, 260px);
+    height: calc(100vh - var(--header-height, 60px));
     position: fixed;
     left: 0;
-    top: 60px;
-    z-index: 1000;
+    top: var(--header-height, 60px);
+    z-index: 1100;
     padding: 25px 20px;
     background: linear-gradient(160deg, rgba(255, 255, 255, 0.85), rgba(245, 248, 255, 0.9));
     backdrop-filter: blur(16px);
     border-right: 1px solid rgba(200, 200, 255, 0.3);
     box-shadow: 2px 0 20px rgba(90, 120, 255, 0.1);
-    transition: all 0.3s ease;
+    transition: transform 0.35s ease, opacity 0.3s ease;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 15px;
+    box-sizing: border-box;
+}
+
+.side-bar__close {
+    display: none;
+    align-self: flex-end;
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #4a6cf7;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+}
+
+.side-bar__close:focus-visible {
+    outline: 2px solid rgba(74, 108, 247, 0.4);
+    outline-offset: 2px;
+}
+
+.side-bar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.2);
+    backdrop-filter: blur(2px);
+    z-index: 1050;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none;
+}
+
+.side-bar-overlay--visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .section {
@@ -65,4 +101,48 @@ html.dark-mode .section:hover {
     background: linear-gradient(135deg, #334155, #475569);
     color: #818cf8;
     box-shadow: 0 8px 18px rgba(129, 140, 248, 0.2);
+}
+
+html.dark-mode .side-bar-overlay {
+    background: rgba(2, 6, 23, 0.6);
+}
+
+@media screen and (max-width: 1000px) {
+    .side-bar {
+        top: 0;
+        height: 100vh;
+        width: min(80vw, 320px);
+        border-right: none;
+        border-radius: 0 20px 20px 0;
+        transform: translateX(-110%);
+        opacity: 0;
+        pointer-events: none;
+        box-shadow: 12px 0 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .side-bar--open {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .side-bar__close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(240, 242, 255, 0.8);
+        box-shadow: 0 4px 12px rgba(74, 108, 247, 0.25);
+    }
+
+    html.dark-mode .side-bar__close {
+        background: rgba(30, 41, 59, 0.8);
+        color: #cbd5e1;
+        box-shadow: 0 4px 12px rgba(2, 6, 23, 0.7);
+    }
+}
+
+@media screen and (min-width: 1001px) {
+    .side-bar-overlay {
+        display: none;
+    }
 }
