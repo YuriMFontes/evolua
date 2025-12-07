@@ -379,49 +379,92 @@ export default function Financeiro(){
                             </h2>
                         </div>
                     </section>
+                </div>
+
+                {/* Seção de Recebimentos */}
+                <div className="secao-tipo-financeiro">
+                    <h2 className="titulo-secao-tipo">💰 Recebimentos</h2>
                     <section className="section-status">
                         <div>
                             {loading ? (
                                 <p>Carregando...</p>
-                            ) : financeiro.length === 0 ? (
-                                <p className="sem-dados">Nenhum registro encontrado. Clique em "Adicionar" para começar.</p>
+                            ) : financeiro.filter(item => item.tipo === "receita").length === 0 ? (
+                                <p className="sem-dados">Nenhum recebimento encontrado. Clique em "Adicionar" para começar.</p>
                             ) : (
                                 <table className="status-table">
                                     <thead>
                                         <tr>
-                                            <th>Conta</th>
-                                            <th>Tipo</th>
+                                            <th>Descrição</th>
                                             <th>Valor</th>
-                                            <th>Data/Vencimento</th>
+                                            <th>Data de Recebimento</th>
                                             <th>Status</th>
                                             <th>Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {financeiro.map(item => (
+                                        {financeiro.filter(item => item.tipo === "receita").map(item => (
                                             <tr key={item.id}>
-                                                <td data-label="Conta">{item.descricao}</td>
-                                                <td data-label="Tipo" className={`tipo-badge tipo-${item.tipo}`}>
-                                                    {item.tipo === "receita" ? "Receita" : "Despesa"}
-                                                </td>
+                                                <td data-label="Descrição">{item.descricao}</td>
                                                 <td data-label="Valor">{formatarMoeda(item.valor)}</td>
-                                                <td data-label="Data/Vencimento">{formatarData(item.vencimento)}</td>
+                                                <td data-label="Data de Recebimento">{formatarData(item.vencimento)}</td>
                                                 <td data-label="Status">
-                                                    {item.tipo === "receita" ? (
-                                                        <span className="status-select status-pago" style={{ cursor: "default" }}>
-                                                            Recebido
-                                                        </span>
-                                                    ) : (
-                                                        <select 
-                                                            value={item.status}
-                                                            onChange={(e) => handleStatusChange(item.id, e.target.value)}
-                                                            className={`status-select status-${item.status}`}
-                                                        >
-                                                            <option value="pendente">Pendente</option>
-                                                            <option value="atrasado">Atrasado</option>
-                                                            <option value="pago">Pago</option>
-                                                        </select>
-                                                    )}
+                                                    <span className="status-select status-pago" style={{ cursor: "default" }}>
+                                                        Recebido
+                                                    </span>
+                                                </td>
+                                                <td data-label="Ações">
+                                                    <button 
+                                                        className="btn-deletar"
+                                                        onClick={() => handleDelete(item.id)}
+                                                    >
+                                                        Excluir
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </section>
+                </div>
+
+                {/* Seção de Despesas */}
+                <div className="secao-tipo-financeiro">
+                    <h2 className="titulo-secao-tipo">💸 Despesas</h2>
+                    <section className="section-status">
+                        <div>
+                            {loading ? (
+                                <p>Carregando...</p>
+                            ) : financeiro.filter(item => item.tipo === "despesa").length === 0 ? (
+                                <p className="sem-dados">Nenhuma despesa encontrada. Clique em "Adicionar" para começar.</p>
+                            ) : (
+                                <table className="status-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Descrição</th>
+                                            <th>Valor</th>
+                                            <th>Vencimento</th>
+                                            <th>Status</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {financeiro.filter(item => item.tipo === "despesa").map(item => (
+                                            <tr key={item.id}>
+                                                <td data-label="Descrição">{item.descricao}</td>
+                                                <td data-label="Valor">{formatarMoeda(item.valor)}</td>
+                                                <td data-label="Vencimento">{formatarData(item.vencimento)}</td>
+                                                <td data-label="Status">
+                                                    <select 
+                                                        value={item.status}
+                                                        onChange={(e) => handleStatusChange(item.id, e.target.value)}
+                                                        className={`status-select status-${item.status}`}
+                                                    >
+                                                        <option value="pendente">Pendente</option>
+                                                        <option value="atrasado">Atrasado</option>
+                                                        <option value="pago">Pago</option>
+                                                    </select>
                                                 </td>
                                                 <td data-label="Ações">
                                                     <button 

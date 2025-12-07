@@ -70,6 +70,24 @@
   }
   
   /* =======================
+     SEÇÕES SEPARADAS (RECEBIMENTOS/DESPESAS)
+     ======================= */
+
+  .secao-tipo-financeiro {
+    margin-top: 30px;
+    width: 100%;
+  }
+
+  .titulo-secao-tipo {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid #4a6cf7;
+  }
+  
+  /* =======================
      STATUS / TABELA
      ======================= */
   
@@ -82,6 +100,7 @@
     backdrop-filter: blur(10px);
     transition: all 0.3s ease;
     padding: 20px;
+    margin-bottom: 20px;
   }
   
   .status-table {
@@ -643,6 +662,17 @@
     .btn-deletar {
         width: 100%;
     }
+
+    /* Títulos das seções em mobile */
+    .titulo-secao-tipo {
+        font-size: 20px;
+        margin-bottom: 16px;
+        padding-bottom: 10px;
+    }
+
+    .secao-tipo-financeiro {
+        margin-top: 24px;
+    }
 }
       
 /* ======== DARK MODE ======== */
@@ -751,5 +781,10 @@ html.dark-mode .btn-cancelar:hover {
 
 html.dark-mode .sem-dados {
     color: #64748b;
+}
+
+html.dark-mode .titulo-secao-tipo {
+    color: #f1f5f9;
+    border-bottom-color: #818cf8;
 }
       
