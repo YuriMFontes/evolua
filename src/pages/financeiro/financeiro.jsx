@@ -474,9 +474,20 @@ export default function Financeiro(){
                 if (error) throw error
             }
 
+            // Limpa itens desta fatura para não duplicar em novos registros
+            const idsParaLimpar = gastosSelecionados.map(g => g.id)
+            if (idsParaLimpar.length) {
+                const { error: erroDelete } = await supabase
+                    .from("cartao_gastos")
+                    .delete()
+                    .in("id", idsParaLimpar)
+                if (erroDelete) throw erroDelete
+            }
+
             setCartaoItem({ descricao: "", valor: "" })
-            setCartaoResumo(prev => ({ ...prev, vencimento: defaultVencimentoCartao() }))
+            setCartaoResumo(prev => ({ ...prev, vencimento: defaultVencimentoCartao(), cartaoId: "", cartaoNome: "" }))
             fetchFinanceiro()
+            fetchCartaoGastos()
         } catch (error) {
             console.error("Erro ao registrar fatura:", error)
             alert("Erro ao registrar fatura: " + error.message)
