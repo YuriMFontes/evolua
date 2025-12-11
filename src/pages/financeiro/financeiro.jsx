@@ -200,7 +200,7 @@ export default function Financeiro(){
     }
 
     const totalCartao = cartaoGastos
-        .filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento)
+        .filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento && !g.fatura_id)
         .reduce((sum, item) => sum + (parseFloat(item.valor) || 0), 0)
 
     const proximoVencimentoDia = (dia) => {
@@ -424,7 +424,7 @@ export default function Financeiro(){
             alert("Defina o vencimento do cartão (selecionando um cartão salvo com dia de vencimento).")
             return
         }
-        const gastosSelecionados = cartaoGastos.filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento)
+        const gastosSelecionados = cartaoGastos.filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento && !g.fatura_id)
         if (!gastosSelecionados.length) {
             alert("Adicione ao menos um item de cartão")
             return
@@ -449,6 +449,7 @@ export default function Financeiro(){
                 throw erroBusca
             }
 
+            let faturaId = faturaExistente?.id
             if (faturaExistente) {
                 const novoValor = parseFloat(faturaExistente.valor || 0) + totalCartao
                 const { error } = await supabase
@@ -460,7 +461,7 @@ export default function Financeiro(){
                     .eq("id", faturaExistente.id)
                 if (error) throw error
             } else {
-                const { error } = await supabase
+                const { data: novaFatura, error } = await supabase
                     .from("financeiro")
                     .insert([{
                         user_id: user.id,
@@ -471,17 +472,22 @@ export default function Financeiro(){
                         status: statusFinal,
                         is_cartao: true
                     }])
+                    .select()
+                    .single()
                 if (error) throw error
+                faturaId = novaFatura?.id
             }
 
-            // Limpa itens desta fatura para não duplicar em novos registros
-            const idsParaLimpar = gastosSelecionados.map(g => g.id)
-            if (idsParaLimpar.length) {
-                const { error: erroDelete } = await supabase
-                    .from("cartao_gastos")
-                    .delete()
-                    .in("id", idsParaLimpar)
-                if (erroDelete) throw erroDelete
+            // Vincula itens à fatura (marca como faturados)
+            if (faturaId) {
+                const idsParaVincular = gastosSelecionados.map(g => g.id)
+                if (idsParaVincular.length) {
+                    const { error: erroUpdate } = await supabase
+                        .from("cartao_gastos")
+                        .update({ fatura_id: faturaId })
+                        .in("id", idsParaVincular)
+                    if (erroUpdate) throw erroUpdate
+                }
             }
 
             setCartaoItem({ descricao: "", valor: "" })
@@ -894,15 +900,18 @@ export default function Financeiro(){
                                     </div>
                                     <div className="form-group form-group-button">
         <label>&nbsp;</label>
-        <button
-            type="button"
-            className="btn-adicionar"
-            style={{ width: "100%" }}
-            onClick={() => setShowCartaoDetalhes(true)}
-            disabled={!cartaoResumo.cartaoId}
-        >
-            Ver gastos do cartão
-        </button>
+                                        <button
+                                            type="button"
+                                            className="btn-adicionar"
+                                            style={{ width: "100%" }}
+                                            onClick={() => {
+                                                fetchCartaoGastos()
+                                                setShowCartaoDetalhes(true)
+                                            }}
+                                            disabled={!cartaoResumo.cartaoId}
+                                        >
+                                            Ver gastos do cartão
+                                        </button>
     </div>
                                 </div>
                                 <div className="form-row">
@@ -938,7 +947,7 @@ export default function Financeiro(){
                         <section className="section-status">
                             <h2 className="titulo-secao-tipo">🧾 Gastos de cartão</h2>
                             <div>
-                                {cartaoGastos.filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento).length === 0 ? (
+                                {cartaoGastos.filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento && !g.fatura_id).length === 0 ? (
                                     <p className="sem-dados">Nenhum item adicionado. Preencha acima e clique em "Adicionar item".</p>
                                 ) : (
                                     <table className="status-table">
@@ -951,7 +960,7 @@ export default function Financeiro(){
                                         </thead>
                                         <tbody>
                                             {cartaoGastos
-                                                .filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento)
+                                                .filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento && !g.fatura_id)
                                                 .map((item) => (
                                                 <tr key={item.id}>
                                                     <td data-label="Descrição">{item.descricao}</td>
