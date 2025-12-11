@@ -39,7 +39,8 @@ export default function Financeiro(){
         return venc.toISOString().split("T")[0]
     }
     const [cartaoResumo, setCartaoResumo] = useState({
-        cartao: "",
+        cartaoId: "",
+        cartaoNome: "",
         vencimento: ""
     })
     const [cartoes, setCartoes] = useState([])
@@ -49,7 +50,8 @@ export default function Financeiro(){
         descricao: "",
         valor: ""
     })
-    const [cartaoItems, setCartaoItems] = useState([])
+    const [cartaoGastos, setCartaoGastos] = useState([])
+    const [showCartaoDetalhes, setShowCartaoDetalhes] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
     const [editData, setEditData] = useState({
         id: null,
@@ -126,18 +128,32 @@ export default function Financeiro(){
         fetchCartoes()
     }, [user])
 
+    const fetchCartaoGastos = useCallback(async () => {
+        if (!user) return
+        const { data, error } = await supabase
+            .from("cartao_gastos")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: true })
+        if (!error && data) setCartaoGastos(data)
+    }, [user])
+
+    useEffect(() => {
+        fetchCartaoGastos()
+    }, [fetchCartaoGastos])
+
     // Sempre que selecionar cartão, define o vencimento a partir do dia do cartão
     useEffect(() => {
-        if (!cartaoResumo.cartao) {
+        if (!cartaoResumo.cartaoId) {
             setCartaoResumo(prev => ({ ...prev, vencimento: "" }))
             return
         }
-        const card = cartoes.find(c => c.nome === cartaoResumo.cartao)
+        const card = cartoes.find(c => c.id === cartaoResumo.cartaoId)
         if (card?.vencimento_dia) {
             const prox = proximoVencimentoDia(card.vencimento_dia)
-            setCartaoResumo(prev => ({ ...prev, vencimento: prox }))
+            setCartaoResumo(prev => ({ ...prev, vencimento: prox, cartaoNome: card.nome }))
         }
-    }, [cartaoResumo.cartao, cartoes])
+    }, [cartaoResumo.cartaoId, cartoes])
 
     // Calcular totais
     const calcularTotais = () => {
@@ -183,7 +199,9 @@ export default function Financeiro(){
         return calcularStatus(item.vencimento, item.status)
     }
 
-    const totalCartao = cartaoItems.reduce((sum, item) => sum + (parseFloat(item.valor) || 0), 0)
+    const totalCartao = cartaoGastos
+        .filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento)
+        .reduce((sum, item) => sum + (parseFloat(item.valor) || 0), 0)
 
     const proximoVencimentoDia = (dia) => {
         if (!dia) return ""
@@ -309,21 +327,6 @@ export default function Financeiro(){
         }
     }
 
-    // Adicionar item local na aba de cartão (não salva ainda no financeiro)
-    const handleAddCartaoItem = (e) => {
-        e.preventDefault()
-        if (!cartaoItem.descricao || !cartaoItem.valor) {
-            alert("Preencha descrição e valor do item")
-            return
-        }
-        setCartaoItems(prev => [...prev, { descricao: cartaoItem.descricao, valor: parseFloat(cartaoItem.valor) || 0 }])
-        setCartaoItem({ descricao: "", valor: "" })
-    }
-
-    const handleRemoveCartaoItem = (idx) => {
-        setCartaoItems(prev => prev.filter((_, i) => i !== idx))
-    }
-
     // Criar cartão (salvo no supabase)
     const handleCriarCartao = async () => {
         if (!novoCartao.trim()) {
@@ -357,6 +360,60 @@ export default function Financeiro(){
         }
     }
 
+    // Adicionar item de cartão (salva detalhe)
+    const handleAddCartaoItem = async (e) => {
+        e.preventDefault()
+        if (!cartaoResumo.cartaoId) {
+            alert("Selecione um cartão")
+            return
+        }
+        if (!cartaoResumo.vencimento) {
+            alert("Vencimento não definido. Verifique o cartão.")
+            return
+        }
+        if (!cartaoItem.descricao || !cartaoItem.valor) {
+            alert("Preencha descrição e valor do item")
+            return
+        }
+        if (!user) {
+            alert("Usuário não autenticado")
+            return
+        }
+        try {
+            const { error } = await supabase
+                .from("cartao_gastos")
+                .insert([{
+                    user_id: user.id,
+                    cartao_id: cartaoResumo.cartaoId,
+                    descricao: cartaoItem.descricao,
+                    valor: parseFloat(cartaoItem.valor),
+                    vencimento: cartaoResumo.vencimento
+                }])
+            if (error) throw error
+            setCartaoItem({ descricao: "", valor: "" })
+            fetchCartaoGastos()
+        } catch (error) {
+            console.error("Erro ao adicionar gasto do cartão:", error)
+            alert("Erro ao adicionar gasto do cartão: " + error.message)
+        }
+    }
+
+    const handleRemoveCartaoItem = async (id) => {
+        if (!user) return
+        try {
+            const { error } = await supabase
+                .from("cartao_gastos")
+                .delete()
+                .eq("id", id)
+                .eq("user_id", user.id)
+            if (error) throw error
+            fetchCartaoGastos()
+        } catch (error) {
+            console.error("Erro ao remover gasto:", error)
+            alert("Erro ao remover gasto: " + error.message)
+        }
+    }
+
     // Registrar fatura de cartão como uma única despesa no financeiro
     const handleRegistrarFatura = async () => {
         if (!user) {
@@ -367,7 +424,8 @@ export default function Financeiro(){
             alert("Defina o vencimento do cartão (selecionando um cartão salvo com dia de vencimento).")
             return
         }
-        if (!cartaoItems.length) {
+        const gastosSelecionados = cartaoGastos.filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento)
+        if (!gastosSelecionados.length) {
             alert("Adicione ao menos um item de cartão")
             return
         }
@@ -416,7 +474,6 @@ export default function Financeiro(){
                 if (error) throw error
             }
 
-            setCartaoItems([])
             setCartaoItem({ descricao: "", valor: "" })
             setCartaoResumo(prev => ({ ...prev, vencimento: defaultVencimentoCartao() }))
             fetchFinanceiro()
@@ -777,13 +834,17 @@ export default function Financeiro(){
                                     <div className="form-group">
                                         <label>Cartão *</label>
                                         <select
-                                            value={cartaoResumo.cartao}
-                                            onChange={(e) => setCartaoResumo({...cartaoResumo, cartao: e.target.value})}
+                                            value={cartaoResumo.cartaoId}
+                                            onChange={(e) => setCartaoResumo({
+                                                ...cartaoResumo,
+                                                cartaoId: e.target.value,
+                                                cartaoNome: (cartoes.find(c => c.id === e.target.value)?.nome) || ""
+                                            })}
                                             required
                                         >
                                             <option value="">Selecione ou cadastre</option>
                                             {cartoes.map(c => (
-                                                <option key={c.id} value={c.nome}>{c.nome} (vence dia {c.vencimento_dia || "?"})</option>
+                                                <option key={c.id} value={c.id}>{c.nome} (vence dia {c.vencimento_dia || "?"})</option>
                                             ))}
                                         </select>
                                     </div>
@@ -812,14 +873,26 @@ export default function Financeiro(){
                                         <p className="hint-vencimento">Informe o dia de vencimento do cartão (1 a 28). Ao selecionar o cartão, usamos o próximo vencimento.</p>
                                     </div>
                                     <div className="form-group">
-                                        <label>Vencimento da fatura</label>
-                                        <input
-                                            type="text"
-                                            value={cartaoResumo.vencimento ? formatarData(cartaoResumo.vencimento) : ""}
-                                            readOnly
-                                            placeholder="Selecione um cartão para definir o vencimento"
-                                        />
+                                    <label>Vencimento da fatura</label>
+                                    <input
+                                        type="text"
+                                        value={cartaoResumo.vencimento ? formatarData(cartaoResumo.vencimento) : ""}
+                                        readOnly
+                                        placeholder="Selecione um cartão para definir o vencimento"
+                                    />
                                     </div>
+                                    <div className="form-group form-group-button">
+        <label>&nbsp;</label>
+        <button
+            type="button"
+            className="btn-adicionar"
+            style={{ width: "100%" }}
+            onClick={() => setShowCartaoDetalhes(true)}
+            disabled={!cartaoResumo.cartaoId}
+        >
+            Ver gastos do cartão
+        </button>
+    </div>
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
@@ -854,7 +927,7 @@ export default function Financeiro(){
                         <section className="section-status">
                             <h2 className="titulo-secao-tipo">🧾 Gastos de cartão</h2>
                             <div>
-                                {cartaoItems.length === 0 ? (
+                                {cartaoGastos.filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento).length === 0 ? (
                                     <p className="sem-dados">Nenhum item adicionado. Preencha acima e clique em "Adicionar item".</p>
                                 ) : (
                                     <table className="status-table">
@@ -866,15 +939,17 @@ export default function Financeiro(){
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {cartaoItems.map((item, idx) => (
-                                                <tr key={`${item.descricao}-${idx}`}>
+                                            {cartaoGastos
+                                                .filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento)
+                                                .map((item) => (
+                                                <tr key={item.id}>
                                                     <td data-label="Descrição">{item.descricao}</td>
                                                     <td data-label="Valor">{formatarMoeda(item.valor)}</td>
                                                     <td data-label="Ações">
                                                         <div className="acoes-btns">
                                                             <button 
                                                                 className="btn-deletar"
-                                                                onClick={() => handleRemoveCartaoItem(idx)}
+                                                                onClick={() => handleRemoveCartaoItem(item.id)}
                                                             >
                                                                 Remover
                                                             </button>
@@ -890,12 +965,65 @@ export default function Financeiro(){
                                     <strong>{formatarMoeda(totalCartao)}</strong>
                                 </div>
                                 <div className="modal-buttons" style={{ justifyContent: "flex-end", marginTop: "16px" }}>
-                                    <button type="button" className="btn-salvar" onClick={handleRegistrarFatura} disabled={!cartaoItems.length}>
+                                    <button
+                                        type="button"
+                                        className="btn-salvar"
+                                        onClick={handleRegistrarFatura}
+                                        disabled={
+                                            cartaoGastos.filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento).length === 0
+                                        }
+                                    >
                                         Registrar fatura no financeiro
                                     </button>
                                 </div>
                             </div>
                         </section>
+                    </div>
+                )}
+
+                {/* Modal de detalhes dos gastos do cartão */}
+                {showCartaoDetalhes && (
+                    <div className="modal-overlay" onClick={() => setShowCartaoDetalhes(false)}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <h2>Gastos do cartão {cartaoResumo.cartaoNome || ""}</h2>
+                            {cartaoResumo.vencimento && (
+                                <p className="hint-vencimento" style={{ marginBottom: "12px" }}>
+                                    Vencimento: {formatarData(cartaoResumo.vencimento)}
+                                </p>
+                            )}
+                            {cartaoGastos.filter(g => g.cartao_id === cartaoResumo.cartaoId).length === 0 ? (
+                                <p className="sem-dados">Nenhum gasto para este cartão.</p>
+                            ) : (
+                                <table className="status-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Descrição</th>
+                                            <th>Valor</th>
+                                            <th>Vencimento</th>
+                                            <th>Criado em</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {cartaoGastos
+                                            .filter(g => g.cartao_id === cartaoResumo.cartaoId)
+                                            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                                            .map(item => (
+                                                <tr key={item.id}>
+                                                    <td data-label="Descrição">{item.descricao}</td>
+                                                    <td data-label="Valor">{formatarMoeda(item.valor)}</td>
+                                                    <td data-label="Vencimento">{formatarData(item.vencimento)}</td>
+                                                    <td data-label="Criado em">{formatarData(item.created_at)}</td>
+                                                </tr>
+                                            ))}
+                                    </tbody>
+                                </table>
+                            )}
+                            <div className="modal-buttons">
+                                <button type="button" className="btn-cancelar" onClick={() => setShowCartaoDetalhes(false)}>
+                                    Fechar
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
 
