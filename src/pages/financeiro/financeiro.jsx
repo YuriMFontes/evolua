@@ -596,7 +596,21 @@ export default function Financeiro(){
             const matchParcela = registro.descricao.match(/\((\d+)\/(\d+)\)$/)
             console.log("Match parcela:", matchParcela)
             
-            if (matchParcela) {
+            if (registro.is_cartao) {
+                // Se for fatura de cartão, desvincula os gastos antes de deletar
+                const { error: erroUnlink } = await supabase
+                    .from("cartao_gastos")
+                    .update({ fatura_id: null })
+                    .eq("fatura_id", id)
+                    .eq("user_id", user.id)
+                if (erroUnlink) throw erroUnlink
+                const { error } = await supabase
+                    .from("financeiro")
+                    .delete()
+                    .eq("id", id)
+                if (error) throw error
+                alert("Fatura de cartão excluída e gastos desvinculados.")
+            } else if (matchParcela) {
                 // É uma parcela, buscar todas as parcelas do mesmo grupo
                 const descBase = registro.descricao.replace(/\s*\(\d+\/\d+\)$/, "")
                 console.log("Descrição base:", descBase)
