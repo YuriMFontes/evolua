@@ -325,6 +325,58 @@
     transform: translateY(-2px);
 }
 
+.acoes-btns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-editar {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-editar:hover {
+    background: linear-gradient(135deg, #138496, #117a8b);
+    transform: translateY(-2px);
+}
+
+.acoes-btns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-editar {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-editar:hover {
+    background: linear-gradient(135deg, #138496, #117a8b);
+    transform: translateY(-2px);
+}
+
 /* =======================
    SALDO NEGATIVO
    ======================= */
@@ -659,8 +711,17 @@
         width: 100%;
     }
 
-    .btn-deletar {
+    .btn-deletar,
+    .btn-editar {
         width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .acoes-btns {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
     }
 
     /* Títulos das seções em mobile */

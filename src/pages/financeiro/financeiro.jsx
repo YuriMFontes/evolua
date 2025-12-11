@@ -26,6 +26,14 @@ export default function Financeiro(){
         quantidadeParcelas: 1,
         contaFixa: false
     })
+    const [showEditModal, setShowEditModal] = useState(false)
+    const [editData, setEditData] = useState({
+        id: null,
+        descricao: "",
+        valor: "",
+        vencimento: "",
+        status: "pendente"
+    })
 
     const toggleSidebar = useCallback(() => {
         setSidebarOpen(prev => !prev)
@@ -69,7 +77,8 @@ export default function Financeiro(){
 
         const [ano, mes] = mesFiltro.split('-')
         const filtered = financeiroCompleto.filter(item => {
-            const itemDate = new Date(item.vencimento)
+            const itemDate = parseDateOnly(item.vencimento)
+            if (!itemDate) return false
             const itemAno = itemDate.getFullYear()
             const itemMes = itemDate.getMonth() + 1
             
@@ -94,19 +103,33 @@ export default function Financeiro(){
         return { receitas, despesas, saldo }
     }
 
+    // Garantir que datas "YYYY-MM-DD" sejam tratadas como datas locais (evita fuso/UTC)
+    const parseDateOnly = (dateString) => {
+        if (!dateString) return null
+        const [year, month, day] = dateString.split("-").map(Number)
+        return new Date(year, (month || 1) - 1, day || 1)
+    }
+
     // Calcular status baseado na data
     const calcularStatus = (vencimento, statusManual) => {
         if (statusManual === "pago") return "pago"
         
         const hoje = new Date()
         hoje.setHours(0, 0, 0, 0)
-        const dataVenc = new Date(vencimento)
+        const dataVenc = parseDateOnly(vencimento)
+        if (!dataVenc) return statusManual || "pendente"
         dataVenc.setHours(0, 0, 0, 0)
         
         if (dataVenc < hoje && statusManual !== "pago") {
             return "atrasado"
         }
         return "pendente"
+    }
+
+    // Status calculado em tempo real (despesas vencidas viram "atrasado" automaticamente)
+    const getStatusComAtraso = (item) => {
+        if (item.tipo !== "despesa") return "pago"
+        return calcularStatus(item.vencimento, item.status)
     }
 
     // Formatar moeda
@@ -140,7 +163,7 @@ export default function Financeiro(){
             // Se for parcelado, criar múltiplos registros
             if (formData.tipo === "despesa" && formData.contaFixa) {
                 const registrosFixos = []
-                const dataBase = new Date(formData.vencimento + "T00:00:00")
+                const dataBase = parseDateOnly(formData.vencimento)
 
                 for (let i = 0; i < 12; i++) {
                     const dataMes = new Date(dataBase)
@@ -165,7 +188,7 @@ export default function Financeiro(){
             } else if (formData.parcelado && formData.quantidadeParcelas > 1 && formData.tipo === "despesa") {
                 const registros = []
                 const valorParcela = parseFloat(formData.valor) / formData.quantidadeParcelas
-                const dataBase = new Date(formData.vencimento + "T00:00:00")
+                const dataBase = parseDateOnly(formData.vencimento)
                 
                 for (let i = 0; i < formData.quantidadeParcelas; i++) {
                     const dataParcela = new Date(dataBase)
@@ -218,6 +241,49 @@ export default function Financeiro(){
         } catch (error) {
             console.error("Erro ao adicionar registro:", error)
             alert("Erro ao adicionar registro: " + error.message)
+        }
+    }
+
+    // Abrir modal de edição (somente despesas)
+    const handleEditOpen = (item) => {
+        setEditData({
+            id: item.id,
+            descricao: item.descricao || "",
+            valor: item.valor?.toString() || "",
+            vencimento: item.vencimento || "",
+            status: item.status || "pendente"
+        })
+        setShowEditModal(true)
+    }
+
+    // Salvar alterações de despesa
+    const handleEditSubmit = async (e) => {
+        e.preventDefault()
+        if (!editData.id || !user) {
+            alert("Registro inválido ou usuário não autenticado")
+            return
+        }
+
+        try {
+            const statusAtualizado = calcularStatus(editData.vencimento, editData.status)
+            const { error } = await supabase
+                .from("financeiro")
+                .update({
+                    descricao: editData.descricao,
+                    valor: parseFloat(editData.valor),
+                    vencimento: editData.vencimento,
+                    status: statusAtualizado
+                })
+                .eq("id", editData.id)
+
+            if (error) throw error
+
+            setShowEditModal(false)
+            setEditData({ id: null, descricao: "", valor: "", vencimento: "", status: "pendente" })
+            fetchFinanceiro()
+        } catch (error) {
+            console.error("Erro ao atualizar registro:", error)
+            alert("Erro ao atualizar registro: " + error.message)
         }
     }
 
@@ -381,6 +447,72 @@ export default function Financeiro(){
                     </section>
                 </div>
 
+                {/* Seção de Despesas */}
+                <div className="secao-tipo-financeiro">
+                    <h2 className="titulo-secao-tipo">💸 Despesas</h2>
+                    <section className="section-status">
+                        <div>
+                            {loading ? (
+                                <p>Carregando...</p>
+                            ) : financeiro.filter(item => item.tipo === "despesa").length === 0 ? (
+                                <p className="sem-dados">Nenhuma despesa encontrada. Clique em "Adicionar" para começar.</p>
+                            ) : (
+                                <table className="status-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Descrição</th>
+                                            <th>Valor</th>
+                                            <th>Vencimento</th>
+                                            <th>Status</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {financeiro.filter(item => item.tipo === "despesa").map(item => {
+                                            const statusCalculado = getStatusComAtraso(item)
+                                            return (
+                                                <tr key={item.id}>
+                                                    <td data-label="Descrição">{item.descricao}</td>
+                                                    <td data-label="Valor">{formatarMoeda(item.valor)}</td>
+                                                    <td data-label="Vencimento">{formatarData(item.vencimento)}</td>
+                                                    <td data-label="Status">
+                                                        <select 
+                                                            value={statusCalculado}
+                                                            onChange={(e) => handleStatusChange(item.id, e.target.value)}
+                                                            className={`status-select status-${statusCalculado}`}
+                                                        >
+                                                            <option value="pendente">Pendente</option>
+                                                            <option value="atrasado">Atrasado</option>
+                                                            <option value="pago">Pago</option>
+                                                        </select>
+                                                    </td>
+                                                    <td data-label="Ações">
+                                                        <div className="acoes-btns">
+                                                            <button 
+                                                                className="btn-editar"
+                                                                onClick={() => handleEditOpen(item)}
+                                                                title="Editar"
+                                                            >
+                                                                ✏️ Editar
+                                                            </button>
+                                                            <button 
+                                                                className="btn-deletar"
+                                                                onClick={() => handleDelete(item.id)}
+                                                            >
+                                                                Excluir
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </section>
+                </div>
+
                 {/* Seção de Recebimentos */}
                 <div className="secao-tipo-financeiro">
                     <h2 className="titulo-secao-tipo">💰 Recebimentos</h2>
@@ -413,66 +545,21 @@ export default function Financeiro(){
                                                     </span>
                                                 </td>
                                                 <td data-label="Ações">
-                                                    <button 
-                                                        className="btn-deletar"
-                                                        onClick={() => handleDelete(item.id)}
-                                                    >
-                                                        Excluir
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            )}
-                        </div>
-                    </section>
-                </div>
-
-                {/* Seção de Despesas */}
-                <div className="secao-tipo-financeiro">
-                    <h2 className="titulo-secao-tipo">💸 Despesas</h2>
-                    <section className="section-status">
-                        <div>
-                            {loading ? (
-                                <p>Carregando...</p>
-                            ) : financeiro.filter(item => item.tipo === "despesa").length === 0 ? (
-                                <p className="sem-dados">Nenhuma despesa encontrada. Clique em "Adicionar" para começar.</p>
-                            ) : (
-                                <table className="status-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Descrição</th>
-                                            <th>Valor</th>
-                                            <th>Vencimento</th>
-                                            <th>Status</th>
-                                            <th>Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {financeiro.filter(item => item.tipo === "despesa").map(item => (
-                                            <tr key={item.id}>
-                                                <td data-label="Descrição">{item.descricao}</td>
-                                                <td data-label="Valor">{formatarMoeda(item.valor)}</td>
-                                                <td data-label="Vencimento">{formatarData(item.vencimento)}</td>
-                                                <td data-label="Status">
-                                                    <select 
-                                                        value={item.status}
-                                                        onChange={(e) => handleStatusChange(item.id, e.target.value)}
-                                                        className={`status-select status-${item.status}`}
-                                                    >
-                                                        <option value="pendente">Pendente</option>
-                                                        <option value="atrasado">Atrasado</option>
-                                                        <option value="pago">Pago</option>
-                                                    </select>
-                                                </td>
-                                                <td data-label="Ações">
-                                                    <button 
-                                                        className="btn-deletar"
-                                                        onClick={() => handleDelete(item.id)}
-                                                    >
-                                                        Excluir
-                                                    </button>
+                                                    <div className="acoes-btns">
+                                                        <button 
+                                                            className="btn-editar"
+                                                            onClick={() => handleEditOpen(item)}
+                                                            title="Editar"
+                                                        >
+                                                            ✏️ Editar
+                                                        </button>
+                                                        <button 
+                                                            className="btn-deletar"
+                                                            onClick={() => handleDelete(item.id)}
+                                                        >
+                                                            Excluir
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -623,6 +710,100 @@ export default function Financeiro(){
                                     </button>
                                     <button type="submit" className="btn-salvar">
                                         Salvar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal de Edição de Despesa */}
+                {showEditModal && (
+                    <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <h2>Editar Despesa</h2>
+                            <form onSubmit={handleEditSubmit}>
+                                <div className="form-group">
+                                    <label>Descrição *</label>
+                                    <input
+                                        type="text"
+                                        value={editData.descricao}
+                                        onChange={(e) => setEditData({...editData, descricao: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Valor *</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={editData.valor}
+                                        onChange={(e) => setEditData({...editData, valor: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Vencimento *</label>
+                                    <input
+                                        type="date"
+                                        value={editData.vencimento}
+                                        onChange={(e) => setEditData({...editData, vencimento: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                                <div className="modal-buttons">
+                                    <button type="button" className="btn-cancelar" onClick={() => setShowEditModal(false)}>
+                                        Cancelar
+                                    </button>
+                                    <button type="submit" className="btn-salvar">
+                                        Salvar alterações
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal de Edição de Despesa */}
+                {showEditModal && (
+                    <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <h2>Editar Despesa</h2>
+                            <form onSubmit={handleEditSubmit}>
+                                <div className="form-group">
+                                    <label>Descrição *</label>
+                                    <input
+                                        type="text"
+                                        value={editData.descricao}
+                                        onChange={(e) => setEditData({...editData, descricao: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Valor *</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={editData.valor}
+                                        onChange={(e) => setEditData({...editData, valor: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Vencimento *</label>
+                                    <input
+                                        type="date"
+                                        value={editData.vencimento}
+                                        onChange={(e) => setEditData({...editData, vencimento: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                                <div className="modal-buttons">
+                                    <button type="button" className="btn-cancelar" onClick={() => setShowEditModal(false)}>
+                                        Cancelar
+                                    </button>
+                                    <button type="submit" className="btn-salvar">
+                                        Salvar alterações
                                     </button>
                                 </div>
                             </form>
