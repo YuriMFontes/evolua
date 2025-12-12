@@ -1,11 +1,17 @@
 import "./side-bar.css"
-import { Link } from "react-router-dom"
+import { NavLink, useLocation } from "react-router-dom"
 
 export default function Sidebar({ isOpen = false, onNavigate }) {
+    const location = useLocation()
+    
     const handleNavigate = () => {
         if (typeof onNavigate === "function") {
             onNavigate()
         }
+    }
+
+    const isActive = (path) => {
+        return location.pathname === path
     }
 
     return (
@@ -23,21 +29,43 @@ export default function Sidebar({ isOpen = false, onNavigate }) {
                 >
                     ✕
                 </button>
-                <Link to="/dashboard" className="section" onClick={handleNavigate}>
-                    Dashboard
-                </Link>
-                <Link to="/financeiro" className="section" onClick={handleNavigate}>
-                    Financeiro
-                </Link>
-                <Link to="/investimento" className="section" onClick={handleNavigate}>
-                    Investimento
-                </Link>
-                <Link to="/saude" className="section" onClick={handleNavigate}>
-                    Saúde
-                </Link>
-                <Link to="/configuracao" className="section" onClick={handleNavigate}>
-                    Configuração
-                </Link>
+                <nav className="side-bar__nav">
+                    <NavLink 
+                        to="/dashboard" 
+                        className={`section ${isActive('/dashboard') ? 'active' : ''}`}
+                        onClick={handleNavigate}
+                    >
+                        Dashboard
+                    </NavLink>
+                    <NavLink 
+                        to="/financeiro" 
+                        className={`section ${isActive('/financeiro') ? 'active' : ''}`}
+                        onClick={handleNavigate}
+                    >
+                        Financeiro
+                    </NavLink>
+                    <NavLink 
+                        to="/investimento" 
+                        className={`section ${isActive('/investimento') ? 'active' : ''}`}
+                        onClick={handleNavigate}
+                    >
+                        Investimento
+                    </NavLink>
+                    <NavLink 
+                        to="/saude" 
+                        className={`section ${isActive('/saude') ? 'active' : ''}`}
+                        onClick={handleNavigate}
+                    >
+                        Saúde
+                    </NavLink>
+                    <NavLink 
+                        to="/configuracao" 
+                        className={`section ${isActive('/configuracao') ? 'active' : ''}`}
+                        onClick={handleNavigate}
+                    >
+                        Configuração
+                    </NavLink>
+                </nav>
             </aside>
             <div
                 className={`side-bar-overlay ${isOpen ? "side-bar-overlay--visible" : ""}`}

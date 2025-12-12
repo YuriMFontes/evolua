@@ -740,7 +740,7 @@ export default function Financeiro(){
                     <>
                         {/* Seção de Despesas */}
                         <div className="secao-tipo-financeiro">
-                            <h2 className="titulo-secao-tipo">💸 Despesas</h2>
+                            <h2 className="titulo-secao-tipo">Despesas</h2>
                             <section className="section-status">
                                 <div>
                                     {loading ? (
@@ -784,7 +784,7 @@ export default function Financeiro(){
                                                                         onClick={() => handleEditOpen(item)}
                                                                         title="Editar"
                                                                     >
-                                                                        ✏️ Editar
+                                                                        Editar
                                                                     </button>
                                                                     <button 
                                                                         className="btn-deletar"
@@ -806,7 +806,7 @@ export default function Financeiro(){
 
                         {/* Seção de Recebimentos */}
                         <div className="secao-tipo-financeiro">
-                            <h2 className="titulo-secao-tipo">💰 Recebimentos</h2>
+                            <h2 className="titulo-secao-tipo">Recebimentos</h2>
                             <section className="section-status">
                                 <div>
                                     {loading ? (
@@ -859,7 +859,7 @@ export default function Financeiro(){
                 {tabAtiva === "cartoes" && (
                     <div className="cartoes-wrapper">
                         <section className="section-status">
-                            <h2 className="titulo-secao-tipo">💳 Cartões - Lançar gastos</h2>
+                            <h2 className="titulo-secao-tipo">Cartões - Lançar gastos</h2>
                             <form className="form-cartao" onSubmit={handleAddCartaoItem}>
                                 <div className="form-row">
                                     <div className="form-group">
@@ -959,7 +959,7 @@ export default function Financeiro(){
                         </section>
 
                         <section className="section-status">
-                            <h2 className="titulo-secao-tipo">🧾 Gastos de cartão</h2>
+                            <h2 className="titulo-secao-tipo">Gastos de cartão</h2>
                             <div>
                                 {cartaoGastos.filter(g => g.cartao_id === cartaoResumo.cartaoId && g.vencimento === cartaoResumo.vencimento && !g.fatura_id).length === 0 ? (
                                     <p className="sem-dados">Nenhum item adicionado. Preencha acima e clique em "Adicionar item".</p>
@@ -1141,14 +1141,15 @@ export default function Financeiro(){
                                                 {formData.valor && formData.parcelado && (
                                                     <div style={{ 
                                                         marginTop: "8px",
-                                                        padding: "8px", 
-                                                        background: "linear-gradient(135deg, #e7f3ff, #d0e9ff)", 
-                                                        borderRadius: "8px", 
-                                                        fontSize: "13px", 
-                                                        color: "#0066cc",
-                                                        fontWeight: "500"
+                                                        padding: "12px", 
+                                                        background: "linear-gradient(135deg, #eff6ff, #dbeafe)", 
+                                                        borderRadius: "10px", 
+                                                        fontSize: "14px", 
+                                                        color: "#1e40af",
+                                                        fontWeight: "600",
+                                                        border: "1px solid #bfdbfe"
                                                     }}>
-                                                        💰 Valor da parcela: {formatarMoeda(parseFloat(formData.valor || 0) / formData.quantidadeParcelas)}
+                                                        Valor da parcela: {formatarMoeda(parseFloat(formData.valor || 0) / formData.quantidadeParcelas)}
                                                     </div>
                                                 )}
                                             </div>
@@ -1185,14 +1186,15 @@ export default function Financeiro(){
                                 )}
                                 {formData.tipo === "receita" && (
                                     <div style={{ 
-                                        padding: "12px", 
-                                        background: "linear-gradient(135deg, #d4edda, #c3e6cb)", 
-                                        borderRadius: "12px", 
+                                        padding: "14px", 
+                                        background: "linear-gradient(135deg, #d1fae5, #a7f3d0)", 
+                                        borderRadius: "10px", 
                                         fontSize: "14px", 
-                                        color: "#155724",
-                                        fontWeight: "500"
+                                        color: "#065f46",
+                                        fontWeight: "500",
+                                        border: "1px solid #6ee7b7"
                                     }}>
-                                        ℹ️ Receitas são sempre marcadas como recebidas automaticamente
+                                        Receitas são sempre marcadas como recebidas automaticamente
                                     </div>
                                 )}
                                 <div className="modal-buttons">
@@ -1201,53 +1203,6 @@ export default function Financeiro(){
                                     </button>
                                     <button type="submit" className="btn-salvar">
                                         Salvar
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
-
-                {/* Modal de Edição de Despesa */}
-                {showEditModal && (
-                    <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                            <h2>Editar Despesa</h2>
-                            <form onSubmit={handleEditSubmit}>
-                                <div className="form-group">
-                                    <label>Descrição *</label>
-                                    <input
-                                        type="text"
-                                        value={editData.descricao}
-                                        onChange={(e) => setEditData({...editData, descricao: e.target.value})}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Valor *</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={editData.valor}
-                                        onChange={(e) => setEditData({...editData, valor: e.target.value})}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Vencimento *</label>
-                                    <input
-                                        type="date"
-                                        value={editData.vencimento}
-                                        onChange={(e) => setEditData({...editData, vencimento: e.target.value})}
-                                        required
-                                    />
-                                </div>
-                                <div className="modal-buttons">
-                                    <button type="button" className="btn-cancelar" onClick={() => setShowEditModal(false)}>
-                                        Cancelar
-                                    </button>
-                                    <button type="submit" className="btn-salvar">
-                                        Salvar alterações
                                     </button>
                                 </div>
                             </form>

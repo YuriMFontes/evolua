@@ -1,6 +1,6 @@
 :root {
-  --sidebar-width: clamp(230px, 16vw, 280px);
-  --header-height: 60px;
+  --sidebar-width: 280px;
+  --header-height: 64px;
 }
 
 * {
