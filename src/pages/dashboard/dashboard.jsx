@@ -61,6 +61,9 @@ export default function Dashboard(){
     const [financeiro, setFinanceiro] = useState([])
     const [ultimasTransacoes, setUltimasTransacoes] = useState([])
     const [investimentos, setInvestimentos] = useState([])
+    const [medidasSaude, setMedidasSaude] = useState([])
+    const [treinosSaude, setTreinosSaude] = useState([])
+    const [metaSaude, setMetaSaude] = useState(null)
     const [loading, setLoading] = useState(true)
 
     const toggleSidebar = useCallback(() => {
@@ -181,11 +184,64 @@ export default function Dashboard(){
         }
     }, [investimentos, user, fetchInvestimentos])
 
+    // Buscar dados de saúde
+    const fetchSaude = useCallback(async () => {
+        if (!user) return
+        
+        try {
+            // Buscar última medida
+            const { data: medidasData, error: medidasError } = await supabase
+                .from("saude_medidas")
+                .select("*")
+                .eq("user_id", user.id)
+                .order("data_medicao", { ascending: false })
+                .limit(1)
+            
+            if (!medidasError) {
+                setMedidasSaude(medidasData || [])
+            }
+
+            // Buscar treinos do mês atual
+            const hoje = new Date()
+            const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+            const [ano, mes] = mesAtual.split('-')
+            
+            const { data: treinosData, error: treinosError } = await supabase
+                .from("treinos")
+                .select("*")
+                .eq("user_id", user.id)
+                .order("data_treino", { ascending: false })
+            
+            if (!treinosError && treinosData) {
+                const treinosMes = treinosData.filter(t => {
+                    const dataTreino = new Date(t.data_treino)
+                    return dataTreino.getFullYear() === parseInt(ano) && 
+                           dataTreino.getMonth() + 1 === parseInt(mes)
+                })
+                setTreinosSaude(treinosMes || [])
+            }
+
+            // Buscar meta
+            const { data: metaData, error: metaError } = await supabase
+                .from("metas_saude")
+                .select("*")
+                .eq("user_id", user.id)
+                .single()
+            
+            if (!metaError && metaData) {
+                setMetaSaude(metaData)
+            }
+        } catch (error) {
+            console.error("Erro ao buscar dados de saúde:", error)
+        }
+    }, [user])
+
     useEffect(() => {
         fetchFinanceiro()
         fetchUltimasTransacoes()
         fetchInvestimentos()
-    }, [fetchFinanceiro, fetchUltimasTransacoes, fetchInvestimentos])
+        fetchSaude()
+    }, [fetchFinanceiro, fetchUltimasTransacoes, fetchInvestimentos, fetchSaude])
 
     // Calcular totais
     const calcularTotais = () => {
@@ -417,7 +473,79 @@ export default function Dashboard(){
                     </div>
                     <div className="dashboard-container-saude">
                         <h1 className="dashboard-container-title">Saúde</h1>
-                        <p>Metas aqui</p>
+                        {loading ? (
+                            <p style={{ textAlign: "center", color: "#999", marginTop: "20px" }}>Carregando...</p>
+                        ) : medidasSaude.length === 0 && treinosSaude.length === 0 ? (
+                            <p style={{ textAlign: "center", color: "#999", marginTop: "20px" }}>
+                                Nenhum dado de saúde registrado
+                            </p>
+                        ) : (
+                            <div className="saude-resumo">
+                                {medidasSaude.length > 0 && (() => {
+                                    const ultimaMedida = medidasSaude[0]
+                                    const imc = ultimaMedida.imc || (ultimaMedida.peso / (ultimaMedida.altura * ultimaMedida.altura)).toFixed(2)
+                                    return (
+                                        <>
+                                            <div className="saude-resumo-item">
+                                                <span className="saude-resumo-label">Peso Atual:</span>
+                                                <span className="saude-resumo-value">
+                                                    {ultimaMedida.peso} kg
+                                                </span>
+                                            </div>
+                                            <div className="saude-resumo-item">
+                                                <span className="saude-resumo-label">IMC:</span>
+                                                <span className="saude-resumo-value">
+                                                    {imc}
+                                                </span>
+                                            </div>
+                                            {metaSaude?.meta_peso && (
+                                                <div className="saude-resumo-item">
+                                                    <span className="saude-resumo-label">Meta de Peso:</span>
+                                                    <span className="saude-resumo-value">
+                                                        {metaSaude.meta_peso} kg
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </>
+                                    )
+                                })()}
+                                {treinosSaude.length > 0 && (() => {
+                                    const treinosFeitos = treinosSaude.filter(t => t.presenca === true).length
+                                    const treinosFaltados = treinosSaude.filter(t => t.presenca === false).length
+                                    const totalTreinos = treinosFeitos + treinosFaltados
+                                    const percentualPresenca = totalTreinos > 0 ? ((treinosFeitos / totalTreinos) * 100).toFixed(0) : 0
+                                    return (
+                                        <>
+                                            <div className="saude-resumo-item">
+                                                <span className="saude-resumo-label">Treinos Este Mês:</span>
+                                                <span className="saude-resumo-value saude-resumo-success">
+                                                    {treinosFeitos} de {totalTreinos}
+                                                </span>
+                                            </div>
+                                            <div className="saude-resumo-item">
+                                                <span className="saude-resumo-label">Presença:</span>
+                                                <span className={`saude-resumo-value ${parseInt(percentualPresenca) >= 80 ? 'saude-resumo-success' : parseInt(percentualPresenca) >= 60 ? 'saude-resumo-warning' : 'saude-resumo-danger'}`}>
+                                                    {percentualPresenca}%
+                                                </span>
+                                            </div>
+                                            {metaSaude?.meta_treinos_mes && (
+                                                <div className="saude-resumo-item">
+                                                    <span className="saude-resumo-label">Meta do Mês:</span>
+                                                    <span className="saude-resumo-value">
+                                                        {metaSaude.meta_treinos_mes} treinos
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </>
+                                    )
+                                })()}
+                                {medidasSaude.length === 0 && treinosSaude.length === 0 && (
+                                    <p style={{ textAlign: "center", color: "#999", marginTop: "20px", fontSize: "13px" }}>
+                                        Comece registrando seu peso e treinos na página de Saúde
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div className="dashboard-container-saude">
                         <h1 className="dashboard-container-title">Resumo de Investimentos</h1>

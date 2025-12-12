@@ -37,6 +37,7 @@ main {
     color: #111;
     background: linear-gradient(90deg, #4a6cf7, #9b5de5);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -397,6 +398,63 @@ main {
     .investimentos-value {
         font-size: 15px;
     }
+}
+
+/* ======== RESUMO SAÚDE NO DASHBOARD ======== */
+.saude-resumo {
+    padding: 10px 0;
+}
+
+.saude-resumo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.saude-resumo-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.saude-resumo-label {
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.saude-resumo-value {
+    font-weight: 600;
+    font-size: 16px;
+    color: #1f2937;
+    text-align: right;
+}
+
+.saude-resumo-value.saude-resumo-success {
+    color: #10b981;
+}
+
+.saude-resumo-value.saude-resumo-warning {
+    color: #f59e0b;
+}
+
+.saude-resumo-value.saude-resumo-danger {
+    color: #ef4444;
+}
+
+html.dark-mode .saude-resumo-item {
+    border-bottom-color: #334155;
+}
+
+html.dark-mode .saude-resumo-label {
+    color: #94a3b8;
+}
+
+html.dark-mode .saude-resumo-value {
+    color: #f1f5f9;
 }
 
 @media screen and (max-width: 480px) {
