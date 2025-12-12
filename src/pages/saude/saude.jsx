@@ -854,8 +854,8 @@ export default function Saude() {
                                                 {dia.charAt(0).toUpperCase() + dia.slice(1)}
                                             </label>
                                         ))}
-                                    </div>
-                                </div>
+                        </div>
+                        </div>
                                 <div className="modal-buttons">
                                     <button type="button" className="btn-cancelar" onClick={() => setShowModalMeta(false)}>
                                         Cancelar
@@ -863,9 +863,9 @@ export default function Saude() {
                                     <button type="submit" className="btn-salvar">
                                         Salvar Metas
                                     </button>
-                                </div>
-                            </form>
                         </div>
+                            </form>
+                </div>
                 </div>
                 )}
             </div>

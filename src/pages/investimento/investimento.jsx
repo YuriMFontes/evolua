@@ -41,6 +41,7 @@ export default function Investimento(){
         ticker: "",
         quantidade: "",
         preco_medio: "",
+        taxas: "",
         data_compra: ""
     })
     const [formError, setFormError] = useState("")
@@ -59,31 +60,24 @@ export default function Investimento(){
         setSidebarOpen(false)
     }, [])
 
-    // Atualizar preços dos investimentos via API
-    const atualizarPrecosInvestimentos = useCallback(async (investimentosList, { silencioso = false } = {}) => {
+    // Atualizar preços dos investimentos via API (simplificado)
+    const atualizarPrecosInvestimentos = useCallback(async (investimentosList) => {
         if (!user || !investimentosList || investimentosList.length === 0) {
-            console.log("[Investimentos] Nenhum investimento para atualizar")
             return
         }
         
         try {
-            if (!silencioso) {
-                setAtualizandoPrecos(true)
-            }
-            console.log("[Investimentos] Iniciando atualização de preços...")
+            setAtualizandoPrecos(true)
             
             // Buscar tickers únicos
             const tickersUnicos = [...new Set(investimentosList.map(inv => inv.ticker))]
-            console.log("[Investimentos] Tickers a buscar:", tickersUnicos)
             
             // Buscar preços da API
             const precos = await buscarPrecosMultiplos(tickersUnicos)
-            console.log("[Investimentos] Preços recebidos da API:", precos)
 
             if (Object.keys(precos).length === 0) {
-                console.warn("[Investimentos] Nenhum preço foi encontrado na API")
-            } else {
-                setCotacoesTempoReal(prev => ({ ...prev, ...precos }))
+                alert("Nenhum preço foi encontrado na API. Verifique se os tickers estão corretos.")
+                return
             }
             
             // Atualizar cada investimento com o preço atual
@@ -92,29 +86,18 @@ export default function Investimento(){
                 const dadosPreco = precos[tickerUpper]
                 
                 if (dadosPreco && dadosPreco.preco > 0) {
-                    const precoAtual = parseFloat(inv.preco_atual || inv.preco_medio)
-                    const novoPreco = dadosPreco.preco
-                    
-                    // Sempre atualizar para garantir que está sincronizado
-                    console.log(`[Investimentos] Atualizando ${inv.ticker}: R$ ${precoAtual} -> R$ ${novoPreco}`)
-                    
                     const { error } = await supabase
                         .from("investimentos")
-                        .update({ preco_atual: novoPreco })
+                        .update({ preco_atual: dadosPreco.preco })
                         .eq("id", inv.id)
                     
                     if (error) {
-                        console.error(`[Investimentos] Erro ao atualizar preço de ${inv.ticker}:`, error)
-                    } else {
-                        console.log(`[Investimentos] Preço de ${inv.ticker} atualizado com sucesso`)
+                        console.error(`Erro ao atualizar preço de ${inv.ticker}:`, error)
                     }
-                } else {
-                    console.warn(`[Investimentos] Preço não encontrado para ${inv.ticker}`)
                 }
             })
             
             await Promise.all(atualizacoes)
-            console.log("[Investimentos] Todas as atualizações concluídas")
             
             // Recarregar investimentos atualizados
             const { data, error } = await supabase
@@ -124,19 +107,15 @@ export default function Investimento(){
                 .order("data_compra", { ascending: false })
             
             if (!error && data) {
-                console.log("[Investimentos] Investimentos recarregados:", data.length)
                 setInvestimentos(data)
                 setUltimaAtualizacao(new Date())
-            } else if (error) {
-                console.error("[Investimentos] Erro ao recarregar:", error)
+                setCotacoesTempoReal(prev => ({ ...prev, ...precos }))
             }
         } catch (error) {
-            console.error("[Investimentos] Erro ao atualizar preços:", error)
-            alert("Erro ao atualizar preços. Verifique o console para mais detalhes.")
+            console.error("Erro ao atualizar preços:", error)
+            alert("Erro ao atualizar preços: " + (error.message || "Erro desconhecido"))
         } finally {
-            if (!silencioso) {
-                setAtualizandoPrecos(false)
-            }
+            setAtualizandoPrecos(false)
         }
     }, [user])
 
@@ -157,13 +136,8 @@ export default function Investimento(){
             const investimentosData = data || []
             setInvestimentos(investimentosData)
             
-            // Atualizar preços automaticamente via API (em background, sem bloquear)
-            if (investimentosData.length > 0) {
-                // Usar setTimeout para não bloquear a renderização
-                setTimeout(async () => {
-                    await atualizarPrecosInvestimentos(investimentosData)
-                }, 1000)
-            }
+            // Atualizar preços automaticamente apenas na primeira carga (opcional)
+            // Removido atualização automática para evitar problemas de performance
         } catch (error) {
             console.error("Erro ao buscar investimentos:", error)
         } finally {
@@ -175,15 +149,8 @@ export default function Investimento(){
         fetchInvestimentos()
     }, [fetchInvestimentos])
 
-    useEffect(() => {
-        if (!investimentos.length) return
-
-        const intervalo = setInterval(() => {
-            atualizarPrecosInvestimentos(investimentos, { silencioso: true })
-        }, 60000)
-
-        return () => clearInterval(intervalo)
-    }, [investimentos, atualizarPrecosInvestimentos])
+    // Removido: atualização automática muito frequente estava causando problemas
+    // Usuário pode atualizar manualmente quando necessário
 
     useEffect(() => {
         if (!showModal) {
@@ -284,7 +251,7 @@ export default function Investimento(){
 
 
 
-    // Agrupar por tipo de ativo - mostrar quantidade
+    // Agrupar por tipo de ativo - mostrar VALOR (não quantidade)
     const porTipoAtivo = useMemo(() => {
         const grupos = {}
         investimentos.forEach(inv => {
@@ -300,10 +267,10 @@ export default function Investimento(){
     }, [investimentos, obterPrecoAtual])
 
 
-    // Dados para gráfico de pizza - composição por tipo (quantidade)
+    // Dados para gráfico de pizza - composição por tipo (VALOR em R$)
     const chartDataComposicao = useMemo(() => {
         const tipos = Object.keys(porTipoAtivo)
-        const quantidades = Object.values(porTipoAtivo).map(g => g.quantidade)
+        const valores = Object.values(porTipoAtivo).map(g => g.valor)
         
         const cores = {
             acao: "#4a6cf7",
@@ -316,14 +283,21 @@ export default function Investimento(){
             outros: "#bdbdbd"
         }
         
+        const formatarMoedaLocal = (valor) => {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(valor || 0)
+        }
+        
         return {
             labels: tipos.map(t => {
                 const label = TIPOS_ATIVO.find(ta => ta.value === t)?.label || t
-                const qtd = porTipoAtivo[t].quantidade
-                return `${label} (${qtd.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })})`
+                const valor = porTipoAtivo[t].valor
+                return `${label} (${formatarMoedaLocal(valor)})`
             }),
             datasets: [{
-                data: quantidades,
+                data: valores,
                 backgroundColor: tipos.map(t => cores[t] || "#bdbdbd"),
                 borderColor: "#ffffff",
                 borderWidth: 2
@@ -349,8 +323,11 @@ export default function Investimento(){
                     label: function(context) {
                         const total = context.dataset.data.reduce((a, b) => a + b, 0)
                         const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0
-                        const quantidade = context.parsed.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-                        return `Quantidade: ${quantidade} (${percentage}%)`
+                        const valor = new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL'
+                        }).format(context.parsed || 0)
+                        return `${valor} (${percentage}%)`
                     }
                 }
             }
@@ -412,7 +389,7 @@ export default function Investimento(){
                 quantidade: parseFloat(formData.quantidade),
                 preco_medio: parseFloat(formData.preco_medio),
                 preco_atual: precoAtual, // Preço atual da API ou preço médio como fallback
-                taxas: 0,
+                taxas: parseFloat(formData.taxas || 0),
                 data_compra: formData.data_compra
             }
 
@@ -433,7 +410,7 @@ export default function Investimento(){
             setEditingId(null)
             setFormError("")
             setFormData({
-                tipo_ativo: "", ticker: "", quantidade: "", preco_medio: "", data_compra: ""
+                tipo_ativo: "", ticker: "", quantidade: "", preco_medio: "", taxas: "", data_compra: ""
             })
             setCotacaoAtual(null)
             setCotacaoErro("")
@@ -469,6 +446,7 @@ export default function Investimento(){
             ticker: inv.ticker || "",
             quantidade: inv.quantidade || "",
             preco_medio: inv.preco_medio || "",
+            taxas: inv.taxas || "",
             data_compra: inv.data_compra ? inv.data_compra.split('T')[0] : ""
         })
         setShowModal(true)
@@ -554,8 +532,13 @@ export default function Investimento(){
                         <div className="card-change">Tipos diferentes: {Object.keys(porTipoAtivo).length}</div>
                     </div>
                     <div className="card-resumo">
-                        <div className="card-label">Quantidade Total</div>
-                        <div className="card-value">{investimentos.reduce((sum, inv) => sum + parseFloat(inv.quantidade || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                        <div className="card-label">Rentabilidade</div>
+                        <div className={`card-value ${parseFloat(rentabilidadePercentual) >= 0 ? "positive" : "negative"}`}>
+                            {rentabilidadePercentual}%
+                        </div>
+                        <div className="card-change">
+                            {lucroPrejuizo >= 0 ? "Lucro" : "Prejuízo"}
+                        </div>
                     </div>
                 </div>
 
@@ -573,19 +556,21 @@ export default function Investimento(){
                         {/* Lista de quantidades por tipo */}
                         {investimentos.length > 0 && (
                             <div className="distribuicao-lista">
-                                {Object.entries(porTipoAtivo).map(([tipo, dados]) => {
-                                    const label = TIPOS_ATIVO.find(t => t.value === tipo)?.label || tipo
-                                    const total = Object.values(porTipoAtivo).reduce((sum, g) => sum + g.quantidade, 0)
-                                    const percentual = total > 0 ? ((dados.quantidade / total) * 100).toFixed(1) : 0
-                                    return (
-                                        <div key={tipo} className="distribuicao-item">
-                                            <span className="distribuicao-tipo">{label}</span>
-                                            <span className="distribuicao-quantidade">
-                                                {dados.quantidade.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ({percentual}%)
-                                            </span>
-                                        </div>
-                                    )
-                                })}
+                                {Object.entries(porTipoAtivo)
+                                    .sort((a, b) => b[1].valor - a[1].valor) // Ordenar por valor (maior primeiro)
+                                    .map(([tipo, dados]) => {
+                                        const label = TIPOS_ATIVO.find(t => t.value === tipo)?.label || tipo
+                                        const totalValor = Object.values(porTipoAtivo).reduce((sum, g) => sum + g.valor, 0)
+                                        const percentual = totalValor > 0 ? ((dados.valor / totalValor) * 100).toFixed(1) : 0
+                                        return (
+                                            <div key={tipo} className="distribuicao-item">
+                                                <span className="distribuicao-tipo">{label}</span>
+                                                <span className="distribuicao-quantidade">
+                                                    {formatarMoeda(dados.valor)} ({percentual}%)
+                                                </span>
+                                            </div>
+                                        )
+                                    })}
                             </div>
                         )}
                     </div>
