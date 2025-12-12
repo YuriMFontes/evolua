@@ -7,6 +7,7 @@ main {
     animation: gradientShift 15s ease infinite;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
     color: #1c1c1e;
+    overflow-x: hidden;
 }
 
 @keyframes gradientShift {
@@ -20,13 +21,17 @@ main {
     flex: 1;
     margin-left: var(--sidebar-width, 260px);
     margin-top: var(--header-height, 60px);
-    padding: 20px 60px;
+    padding: clamp(16px, 4vw, 60px);
     background-color: #f5f5f5;
     transition: all 0.3s ease;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-right: 0;
 }
 
 .title-dashboard {
-    font-size: 28px;
+    font-size: clamp(24px, 4vw, 32px);
     font-weight: 700;
     letter-spacing: -0.5px;
     color: #111;
@@ -38,9 +43,10 @@ main {
 /* Cards superiores */
 .content-dashboard {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-    margin-top: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: clamp(16px, 3vw, 28px);
+    margin-top: clamp(16px, 3vw, 24px);
+    align-items: stretch;
 }
 
 .section-dashboard {
@@ -48,9 +54,12 @@ main {
     background: linear-gradient(135deg, #ffffff, #f4f7ff);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(200, 200, 200, 0.2);
-    min-height: 80px;
+    min-height: clamp(100px, 12vw, 140px);
     box-shadow: 0 8px 20px rgba(90, 120, 255, 0.08);
     transition: transform 0.25s ease, box-shadow 0.25s ease;
+    display: flex;
+    align-items: center;
+    padding: clamp(12px, 2vw, 20px);
 }
 
 .section-dashboard:hover {
@@ -59,20 +68,29 @@ main {
     background: linear-gradient(135deg, #f0f4ff, #ffffff);
 }
 
+.content-section {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1vw, 10px);
+    min-width: 0;
+}
+
 .title-section {
-    margin: 16px;
-    margin-bottom: 8px;
-    font-size: 18px;
-    font-weight: 500;
+    margin: 0;
+    font-size: clamp(12px, 1.8vw, 16px);
+    font-weight: 600;
     color: #2b2b2b;
+    letter-spacing: -0.2px;
 }
 
 .subtitle-section {
-    margin-left: 16px;
-    margin-top: 0;
-    margin-bottom: 4px;
-    font-size: 15px;
-    color: #5a5a5a;
+    margin: 0;
+    font-size: clamp(18px, 2.6vw, 26px);
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.25;
+    letter-spacing: -0.3px;
+    word-break: break-word;
 }
 
 .saldo-negativo {
@@ -91,6 +109,8 @@ main {
     margin-top: 30px;
     padding: 24px;
     backdrop-filter: blur(8px);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Containers */
@@ -268,24 +288,31 @@ main {
 @media screen and (max-width: 1000px) {
     .dashboard {
         margin-left: 0;
-        padding: 16px 18px;
+        margin-right: 0;
+        padding: clamp(16px, 4vw, 24px);
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .title-dashboard {
-        font-size: 22px;
+        font-size: clamp(22px, 5vw, 28px);
         text-align: center;
-        margin-bottom: 12px;
+        margin-bottom: clamp(8px, 2vw, 14px);
+        width: 100%;
     }
 
     .content-dashboard {
-        grid-template-columns: 1fr;
-        gap: 16px;
-        margin-top: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: clamp(14px, 3vw, 20px);
+        margin-top: clamp(12px, 3vw, 20px);
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .section-dashboard {
-        padding: 14px;
-        min-height: 90px;
+        padding: clamp(12px, 3vw, 18px);
+        min-height: clamp(90px, 16vw, 130px);
         border-radius: 16px;
     }
 
@@ -295,19 +322,24 @@ main {
     }
 
     .title-section {
-        margin: 12px 0;
-        font-size: 17px;
+        margin: 0;
+        font-size: clamp(12px, 2.4vw, 15px);
     }
 
     .subtitle-section {
-        margin-left: 12px;
-        font-size: 14px;
+        margin: 0;
+        font-size: clamp(17px, 4vw, 22px);
     }
 
     .dashboard-info {
         grid-template-columns: 1fr;
         gap: 16px;
-        padding: 18px;
+        padding: clamp(16px, 3vw, 20px);
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin-left: 0;
+        margin-right: 0;
     }
 
     .dashboard-container {
@@ -369,25 +401,53 @@ main {
 
 @media screen and (max-width: 480px) {
     .dashboard {
-        padding: 12px 14px;
+        padding: clamp(16px, 4vw, 20px);
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        box-sizing: border-box;
     }
 
     .title-dashboard {
-        font-size: 20px;
+        font-size: clamp(20px, 6vw, 24px);
+        text-align: center;
+        width: 100%;
+        padding: 0;
     }
 
     .content-dashboard {
-        gap: 12px;
+        gap: clamp(12px, 3vw, 16px);
+        grid-template-columns: 1fr;
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        box-sizing: border-box;
+    }
+
+    .section-dashboard {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .dashboard-info {
-        padding: 14px;
-        gap: 12px;
+        padding: clamp(14px, 3vw, 18px);
+        gap: clamp(12px, 3vw, 16px);
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        box-sizing: border-box;
     }
 
-    .dashboard-container {
+    .dashboard-container,
+    .dashboard-container-saude {
         min-height: 250px;
-        padding: 12px;
+        padding: clamp(14px, 3vw, 16px);
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .chart-container {
