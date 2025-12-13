@@ -4,7 +4,7 @@ import Sidebar from "../../componentes/side-bar/side-bar"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { supabase } from "../../lib/supabase"
 import { useAuth } from "../../contexts/AuthContext"
-import { buscarPrecosMultiplos, buscarPrecoAtual } from "../../lib/brapi"
+import { buscarPrecosMultiplos, buscarPrecoAtual } from "../../lib/yahoo-finance"
 import { 
     Doughnut
 } from "react-chartjs-2"
