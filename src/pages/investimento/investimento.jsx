@@ -5,6 +5,8 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { supabase } from "../../lib/supabase"
 import { useAuth } from "../../contexts/AuthContext"
 import { buscarPrecosMultiplos, buscarPrecoAtual } from "../../lib/yahoo-finance"
+import { buscarPrecoRendaFixa, listarTitulosRendaFixa } from "../../lib/renda-fixa"
+import { buscarPrecoCripto, buscarPrecosCriptoMultiplos } from "../../lib/cripto"
 import { 
     Doughnut
 } from "react-chartjs-2"
@@ -26,6 +28,9 @@ const TIPOS_ATIVO = [
     { value: "acao", label: "Ação" },
     { value: "fii", label: "FII" },
     { value: "bdr", label: "BDR" },
+    { value: "renda_fixa", label: "Renda Fixa" },
+    { value: "etf", label: "ETF" },
+    { value: "cripto", label: "Criptomoeda" },
 ]
 
 export default function Investimento(){
@@ -72,7 +77,7 @@ export default function Investimento(){
         setSidebarOpen(false)
     }, [])
 
-    // Atualizar preços dos investimentos via API (simplificado)
+    // Atualizar preços dos investimentos via API (suporta todos os tipos)
     const atualizarPrecosInvestimentos = useCallback(async (investimentosList) => {
         if (!user || !investimentosList || investimentosList.length === 0) {
             return
@@ -81,14 +86,58 @@ export default function Investimento(){
         try {
             setAtualizandoPrecos(true)
             
-            // Buscar tickers únicos
-            const tickersUnicos = [...new Set(investimentosList.map(inv => inv.ticker))]
+            // Separar investimentos por tipo
+            const acoesFIIsBDRs = investimentosList.filter(inv => 
+                ['acao', 'fii', 'bdr', 'etf'].includes(inv.tipo_ativo)
+            )
+            const rendaFixa = investimentosList.filter(inv => inv.tipo_ativo === 'renda_fixa')
+            const criptos = investimentosList.filter(inv => inv.tipo_ativo === 'cripto')
             
-            // Buscar preços da API
-            const precos = await buscarPrecosMultiplos(tickersUnicos)
+            const precos = {}
+            
+            // 1. Buscar preços de ações, FIIs, BDRs, ETFs
+            if (acoesFIIsBDRs.length > 0) {
+                const tickersUnicos = [...new Set(acoesFIIsBDRs.map(inv => inv.ticker))]
+                const precosAcoes = await buscarPrecosMultiplos(tickersUnicos)
+                Object.assign(precos, precosAcoes)
+            }
+            
+            // 2. Buscar preços de renda fixa
+            if (rendaFixa.length > 0) {
+                const promessasRendaFixa = rendaFixa.map(async (inv) => {
+                    try {
+                        const resultado = await buscarPrecoRendaFixa(inv.ticker)
+                        if (resultado && resultado.sucesso) {
+                            return {
+                                ticker: inv.ticker.toUpperCase(),
+                                preco: resultado.preco,
+                                variacao: resultado.rentabilidade || 0,
+                                nome: resultado.nome
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Erro ao buscar renda fixa ${inv.ticker}:`, error)
+                    }
+                    return null
+                })
+                
+                const resultadosRendaFixa = await Promise.all(promessasRendaFixa)
+                resultadosRendaFixa.forEach(r => {
+                    if (r) {
+                        precos[r.ticker] = r
+                    }
+                })
+            }
+            
+            // 3. Buscar preços de criptomoedas
+            if (criptos.length > 0) {
+                const tickersCripto = [...new Set(criptos.map(inv => inv.ticker))]
+                const precosCripto = await buscarPrecosCriptoMultiplos(tickersCripto)
+                Object.assign(precos, precosCripto)
+            }
 
             if (Object.keys(precos).length === 0) {
-                alert("Nenhum preço foi encontrado na API. Verifique se os tickers estão corretos.")
+                alert("Nenhum preço foi encontrado nas APIs. Verifique se os tickers estão corretos.")
                 return
             }
             
@@ -191,6 +240,18 @@ export default function Investimento(){
     }, [cotacoesTempoReal])
 
     const obterPrecoAtual = useCallback((inv) => {
+        // Para renda fixa, usa o preço médio (valor investido)
+        if (inv.tipo_ativo === "renda_fixa") {
+            return parseFloat(inv.preco_medio || inv.preco_atual || 1000)
+        }
+        
+        // Para criptomoedas, tenta buscar dados em tempo real
+        if (inv.tipo_ativo === "cripto") {
+            const dados = obterDadosTempoReal(inv.ticker)
+            if (dados?.preco) return dados.preco
+            return parseFloat(inv.preco_atual || inv.preco_medio)
+        }
+        
         const dados = obterDadosTempoReal(inv.ticker)
         if (dados?.preco) return dados.preco
         return parseFloat(inv.preco_atual || inv.preco_medio)
@@ -235,23 +296,76 @@ export default function Investimento(){
 
         try {
             const ticker = formData.ticker.trim().toUpperCase()
-            const resultado = await buscarPrecoAtual(ticker)
+            let resultado = null
 
-            if (!resultado.sucesso || !resultado.preco) {
-                throw new Error(resultado.erro || "Ticker não encontrado")
+            // Se for renda fixa, usa API específica
+            if (formData.tipo_ativo === "renda_fixa") {
+                resultado = await buscarPrecoRendaFixa(ticker)
+                
+                if (!resultado.sucesso) {
+                    throw new Error(resultado.erro || "Título de renda fixa não encontrado")
+                }
+
+                // Para renda fixa, o "preço" pode ser a taxa ou valor unitário
+                setCotacaoAtual({
+                    preco: resultado.preco || 1000, // Valor padrão para renda fixa
+                    variacao: resultado.rentabilidade || 0,
+                    nome: resultado.nome || ticker,
+                    ticker,
+                    rentabilidade: resultado.rentabilidade,
+                    taxa: resultado.taxa,
+                    tipo: 'renda_fixa'
+                })
+
+                setFormData(prev => ({
+                    ...prev,
+                    ticker,
+                    preco_medio: resultado.preco ? resultado.preco.toFixed(2) : "1000.00",
+                    data_compra: prev.data_compra || new Date().toISOString().split("T")[0]
+                }))
+            } else if (formData.tipo_ativo === "cripto") {
+                // Para criptomoedas, usa API específica
+                resultado = await buscarPrecoCripto(ticker)
+                
+                if (!resultado.sucesso) {
+                    throw new Error(resultado.erro || "Criptomoeda não encontrada")
+                }
+
+                setCotacaoAtual({
+                    preco: resultado.preco,
+                    variacao: resultado.variacao,
+                    nome: resultado.nome || ticker,
+                    ticker,
+                    atualizadoEm: resultado.atualizadoEm,
+                    tipo: 'cripto'
+                })
+
+                setFormData(prev => ({
+                    ...prev,
+                    ticker,
+                    preco_medio: resultado.preco ? resultado.preco.toFixed(2) : prev.preco_medio,
+                    data_compra: prev.data_compra || new Date().toISOString().split("T")[0]
+                }))
+            } else {
+                // Para outros tipos (ações, FIIs, BDRs, ETFs), usa API normal
+                resultado = await buscarPrecoAtual(ticker)
+
+                if (!resultado.sucesso || !resultado.preco) {
+                    throw new Error(resultado.erro || "Ticker não encontrado")
+                }
+
+                setCotacaoAtual({
+                    ...resultado,
+                    ticker
+                })
+
+                setFormData(prev => ({
+                    ...prev,
+                    ticker,
+                    preco_medio: resultado.preco ? resultado.preco.toFixed(2) : prev.preco_medio,
+                    data_compra: prev.data_compra || (resultado.atualizadoEm ? resultado.atualizadoEm.split("T")[0] : prev.data_compra)
+                }))
             }
-
-            setCotacaoAtual({
-                ...resultado,
-                ticker
-            })
-
-            setFormData(prev => ({
-                ...prev,
-                ticker,
-                preco_medio: resultado.preco ? resultado.preco.toFixed(2) : prev.preco_medio,
-                data_compra: prev.data_compra || (resultado.atualizadoEm ? resultado.atualizadoEm.split("T")[0] : prev.data_compra)
-            }))
         } catch (error) {
             console.error("[Investimentos] Erro ao buscar cotação:", error)
             setCotacaoAtual(null)
@@ -259,7 +373,7 @@ export default function Investimento(){
         } finally {
             setCotacaoLoading(false)
         }
-    }, [formData.ticker])
+    }, [formData.ticker, formData.tipo_ativo])
 
 
 
@@ -793,8 +907,10 @@ export default function Investimento(){
                                     <select
                                         value={formData.tipo_ativo}
                                         onChange={(e) => {
-                                            setFormData({...formData, tipo_ativo: e.target.value})
+                                            setFormData({...formData, tipo_ativo: e.target.value, ticker: ""})
                                             setFormError("")
+                                            setCotacaoAtual(null)
+                                            setCotacaoErro("")
                                         }}
                                     >
                                         <option value="">Selecione o tipo...</option>
@@ -802,10 +918,45 @@ export default function Investimento(){
                                             <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
                                         ))}
                                     </select>
+                                    {formData.tipo_ativo === "renda_fixa" && (
+                                        <div style={{ 
+                                            marginTop: "8px",
+                                            padding: "12px", 
+                                            background: "linear-gradient(135deg, #d1fae5, #a7f3d0)", 
+                                            borderRadius: "8px", 
+                                            fontSize: "13px", 
+                                            color: "#065f46",
+                                            fontWeight: "500",
+                                            border: "1px solid #6ee7b7"
+                                        }}>
+                                            <strong>💡 Códigos (busca em tempo real):</strong><br/>
+                                            Tesouro: SELIC, IPCA+, PREFIXADO<br/>
+                                            Outros: CDB, LCI, LCA, DEBENTURE<br/>
+                                            <small>Digite o código e clique em "Buscar cotação"</small>
+                                        </div>
+                                    )}
+                                    {formData.tipo_ativo === "cripto" && (
+                                        <div style={{ 
+                                            marginTop: "8px",
+                                            padding: "12px", 
+                                            background: "linear-gradient(135deg, #fef3c7, #fde68a)", 
+                                            borderRadius: "8px", 
+                                            fontSize: "13px", 
+                                            color: "#78350f",
+                                            fontWeight: "500",
+                                            border: "1px solid #fcd34d"
+                                        }}>
+                                            <strong>💡 Códigos (busca em tempo real):</strong><br/>
+                                            Bitcoin: BITCOIN ou BTC<br/>
+                                            Ethereum: ETHEREUM ou ETH<br/>
+                                            Outras: BNB, SOLANA, CARDANO, DOGECOIN, etc.<br/>
+                                            <small>Digite o código e clique em "Buscar cotação"</small>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="form-group">
-                                    <label>Ticker *</label>
+                                    <label>Ticker / Código *</label>
                                     <div className="input-with-action">
                                         <input
                                             type="text"
@@ -815,8 +966,12 @@ export default function Investimento(){
                                                 setFormError("")
                                                 setCotacaoErro("")
                                             }}
-                                            placeholder="Ex: PETR4, ITUB4, HGLG11"
-                                            maxLength={10}
+                                            placeholder={
+                                                formData.tipo_ativo === "renda_fixa" ? "Ex: SELIC, IPCA+, CDB" :
+                                                formData.tipo_ativo === "cripto" ? "Ex: BITCOIN, BTC, ETHEREUM" :
+                                                "Ex: PETR4, ITUB4, HGLG11"
+                                            }
+                                            maxLength={20}
                                         />
                                         <button
                                             type="button"
