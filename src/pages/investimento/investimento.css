@@ -1217,6 +1217,397 @@ html.dark-mode .form-error {
     }
 }
 
+/* ======== REBALANCEAMENTO ======== */
+.tabs-investimento {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 30px;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #64748b;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+}
+
+.tab-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.rebalanceamento-container {
+    background: white;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-top: 20px;
+}
+
+.rebalanceamento-header {
+    margin-bottom: 30px;
+}
+
+.rebalanceamento-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 10px 0;
+}
+
+.rebalanceamento-descricao {
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.rebalanceamento-config {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.rebalanceamento-config h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 20px 0;
+}
+
+.percentuais-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.percentual-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.percentual-input-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+}
+
+.percentual-input-group input {
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.percentual-input-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.percentual-input-group span {
+    font-size: 14px;
+    color: #64748b;
+    margin-top: -30px;
+    margin-left: auto;
+    margin-right: 12px;
+    pointer-events: none;
+}
+
+.soma-percentuais {
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 14px;
+    color: #1e293b;
+}
+
+.aviso-percentual {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.rebalanceamento-aporte {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.rebalanceamento-aporte h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 20px 0;
+}
+
+.aporte-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 400px;
+}
+
+.aporte-input-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+}
+
+.aporte-input-group input {
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.aporte-input-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.rebalanceamento-resumo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    color: white;
+}
+
+.resumo-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.resumo-label {
+    font-size: 12px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.resumo-value {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.resumo-value.destaque {
+    font-size: 24px;
+}
+
+.rebalanceamento-tabela {
+    margin-top: 30px;
+}
+
+.rebalanceamento-tabela h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 20px 0;
+}
+
+.tabela-rebalanceamento {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.tabela-rebalanceamento thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.tabela-rebalanceamento th {
+    padding: 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tabela-rebalanceamento tbody tr {
+    border-bottom: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.tabela-rebalanceamento tbody tr:hover {
+    background: #f8fafc;
+}
+
+.tabela-rebalanceamento tbody tr.acima-ideal {
+    background: #fef2f2;
+}
+
+.tabela-rebalanceamento tbody tr.acima-ideal:hover {
+    background: #fee2e2;
+}
+
+.tabela-rebalanceamento td {
+    padding: 16px;
+    font-size: 14px;
+    color: #1e293b;
+}
+
+.tabela-rebalanceamento .valor-investir {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.tabela-rebalanceamento .sem-investimento {
+    color: #94a3b8;
+}
+
+.tabela-rebalanceamento tfoot {
+    background: #f8fafc;
+    border-top: 2px solid #e2e8f0;
+}
+
+.tabela-rebalanceamento tfoot td {
+    padding: 16px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+/* Responsividade para rebalanceamento */
+@media screen and (max-width: 768px) {
+    .tabs-investimento {
+        flex-direction: column;
+    }
+
+    .percentuais-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rebalanceamento-resumo {
+        grid-template-columns: 1fr;
+    }
+
+    .tabela-rebalanceamento {
+        font-size: 12px;
+    }
+
+    .tabela-rebalanceamento th,
+    .tabela-rebalanceamento td {
+        padding: 10px;
+    }
+}
+
+/* Dark mode para rebalanceamento */
+html.dark-mode .rebalanceamento-container {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(51, 65, 85, 0.6);
+}
+
+html.dark-mode .rebalanceamento-header h2 {
+    color: #f1f5f9;
+}
+
+html.dark-mode .rebalanceamento-descricao {
+    color: #94a3b8;
+}
+
+html.dark-mode .rebalanceamento-config,
+html.dark-mode .rebalanceamento-aporte {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(51, 65, 85, 0.6);
+}
+
+html.dark-mode .rebalanceamento-config h3,
+html.dark-mode .rebalanceamento-aporte h3,
+html.dark-mode .rebalanceamento-tabela h3 {
+    color: #f1f5f9;
+}
+
+html.dark-mode .percentual-input-group label,
+html.dark-mode .aporte-input-group label {
+    color: #cbd5e1;
+}
+
+html.dark-mode .percentual-input-group input,
+html.dark-mode .aporte-input-group input {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(51, 65, 85, 0.6);
+    color: #f1f5f9;
+}
+
+html.dark-mode .percentual-input-group input:focus,
+html.dark-mode .aporte-input-group input:focus {
+    border-color: #818cf8;
+    background: rgba(30, 41, 59, 0.8);
+}
+
+html.dark-mode .soma-percentuais {
+    background: rgba(30, 41, 59, 0.6);
+    color: #f1f5f9;
+}
+
+html.dark-mode .tabela-rebalanceamento {
+    background: rgba(30, 41, 59, 0.6);
+}
+
+html.dark-mode .tabela-rebalanceamento tbody tr {
+    border-bottom-color: rgba(51, 65, 85, 0.6);
+}
+
+html.dark-mode .tabela-rebalanceamento tbody tr:hover {
+    background: rgba(30, 41, 59, 0.8);
+}
+
+html.dark-mode .tabela-rebalanceamento tbody tr.acima-ideal {
+    background: rgba(127, 29, 29, 0.2);
+}
+
+html.dark-mode .tabela-rebalanceamento td {
+    color: #cbd5e1;
+}
+
+html.dark-mode .tabela-rebalanceamento tfoot {
+    background: rgba(15, 23, 42, 0.6);
+    border-top-color: rgba(51, 65, 85, 0.6);
+}
+
+html.dark-mode .tabela-rebalanceamento tfoot td {
+    color: #f1f5f9;
+}
+
 /* Ajustes para impressão */
 @media print {
     .investimento-container {

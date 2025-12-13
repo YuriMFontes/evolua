@@ -51,6 +51,18 @@ export default function Investimento(){
     const [cotacaoErro, setCotacaoErro] = useState("")
     const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null)
     const [cotacoesTempoReal, setCotacoesTempoReal] = useState({})
+    
+    // Estados para calculadora de rebalanceamento
+    const [tabAtiva, setTabAtiva] = useState("investimentos") // "investimentos" ou "rebalanceamento"
+    const [percentuaisIdeais, setPercentuaisIdeais] = useState({
+        acao: 25,
+        bdr: 15,
+        etf: 0,
+        fii: 30,
+        renda_fixa: 25,
+        cripto: 5
+    })
+    const [valorAporte, setValorAporte] = useState("")
 
     const toggleSidebar = useCallback(() => {
         setSidebarOpen(prev => !prev)
@@ -478,6 +490,95 @@ export default function Investimento(){
         return ((valorAtual / valorAtualCarteira) * 100).toFixed(2)
     }
 
+    // Calcular valores por tipo de ativo para rebalanceamento
+    const valoresPorTipo = useMemo(() => {
+        const grupos = {}
+        investimentos.forEach(inv => {
+            const tipo = inv.tipo_ativo || "outros"
+            if (!grupos[tipo]) {
+                grupos[tipo] = 0
+            }
+            const precoAtual = obterPrecoAtual(inv)
+            grupos[tipo] += parseFloat(inv.quantidade || 0) * precoAtual
+        })
+        return grupos
+    }, [investimentos, obterPrecoAtual])
+
+    // Calcular rebalanceamento
+    const calculoRebalanceamento = useMemo(() => {
+        const patrimonioAtual = parseFloat(valorAtualCarteira) || 0
+        const aporte = parseFloat(valorAporte) || 0
+        const patrimonioFuturo = patrimonioAtual + aporte
+
+        // Garantir que sempre retornamos um objeto válido
+        const resultadoBase = {
+            patrimonioAtual: isNaN(patrimonioAtual) ? 0 : patrimonioAtual,
+            aporte: isNaN(aporte) ? 0 : aporte,
+            patrimonioFuturo: isNaN(patrimonioFuturo) ? 0 : patrimonioFuturo,
+            somaPercentuais: 0,
+            somaQuantoInvestir: 0,
+            resultados: []
+        }
+
+        if (patrimonioFuturo === 0 || isNaN(patrimonioFuturo)) {
+            return resultadoBase
+        }
+
+        // Mapear tipos do banco para os tipos da calculadora
+        // O banco pode ter: "acao", "fii", "bdr", "etf", "renda_fixa", "cripto"
+        // A calculadora usa os mesmos nomes, então podemos usar diretamente
+        const resultados = Object.keys(percentuaisIdeais).map(tipo => {
+            // Buscar o valor atual do tipo correspondente no banco
+            // Os tipos são os mesmos, então podemos usar diretamente
+            const valorAtual = parseFloat(valoresPorTipo[tipo]) || 0
+            const percentualAtualNum = patrimonioAtual > 0 ? (valorAtual / patrimonioAtual) * 100 : 0
+            const percentualIdeal = parseFloat(percentuaisIdeais[tipo]) || 0
+            
+            // Valor ideal após aporte
+            const valorIdeal = (patrimonioFuturo * percentualIdeal) / 100
+            
+            // Diferença entre valor ideal e valor atual
+            const diferenca = valorIdeal - valorAtual
+            
+            // Se já está acima do percentual ideal, não investir nada
+            const quantoInvestir = diferenca > 0 ? diferenca : 0
+            
+            return {
+                tipo,
+                label: tipo === "acao" ? "Ações" : 
+                       tipo === "bdr" ? "BDRs" :
+                       tipo === "etf" ? "ETFs" :
+                       tipo === "fii" ? "FIIs" :
+                       tipo === "renda_fixa" ? "Renda Fixa" :
+                       tipo === "cripto" ? "Criptomoedas" : tipo,
+                valorAtual: isNaN(valorAtual) ? 0 : valorAtual,
+                percentualAtual: isNaN(percentualAtualNum) ? 0 : parseFloat(percentualAtualNum.toFixed(2)),
+                percentualIdeal: isNaN(percentualIdeal) ? 0 : percentualIdeal,
+                valorIdeal: isNaN(valorIdeal) ? 0 : valorIdeal,
+                quantoInvestir: isNaN(quantoInvestir) ? 0 : parseFloat(quantoInvestir.toFixed(2))
+            }
+        })
+
+        // Verificar se a soma dos percentuais ideais é 100%
+        const somaPercentuais = Object.values(percentuaisIdeais).reduce((sum, val) => {
+            const numVal = parseFloat(val) || 0
+            return sum + (isNaN(numVal) ? 0 : numVal)
+        }, 0)
+        const somaQuantoInvestir = resultados.reduce((sum, r) => {
+            const valor = parseFloat(r.quantoInvestir) || 0
+            return sum + (isNaN(valor) ? 0 : valor)
+        }, 0)
+
+        return {
+            patrimonioAtual: isNaN(patrimonioAtual) ? 0 : patrimonioAtual,
+            aporte: isNaN(aporte) ? 0 : aporte,
+            patrimonioFuturo: isNaN(patrimonioFuturo) ? 0 : patrimonioFuturo,
+            somaPercentuais: isNaN(somaPercentuais) ? 0 : somaPercentuais,
+            somaQuantoInvestir: isNaN(somaQuantoInvestir) ? 0 : somaQuantoInvestir,
+            resultados: Array.isArray(resultados) ? resultados : []
+        }
+    }, [valorAtualCarteira, valorAporte, percentuaisIdeais, valoresPorTipo])
+
     return (
         <main>
             <Header onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen}/>
@@ -486,30 +587,53 @@ export default function Investimento(){
                 <div className="investimento-header">
                     <h1 className="investimento-title">Investimentos</h1>
                     <div className="header-actions">
-                        <div className="update-meta">
-                            {atualizandoPrecos ? "Atualizando cotações..." : `Última atualização: ${formatarHorarioAtualizacao(ultimaAtualizacao)}`}
-                        </div>
-                        <button 
-                            className="btn-secondary" 
-                            onClick={() => atualizarPrecosInvestimentos(investimentos)}
-                            disabled={atualizandoPrecos || investimentos.length === 0}
-                            title="Atualizar preços dos ativos"
-                        >
-                            {atualizandoPrecos ? "Atualizando..." : "🔄 Atualizar Preços"}
-                        </button>
-                        <button className="btn-primary" onClick={() => {
-                            setEditingId(null)
-                            setFormError("")
-                            setFormData({
-                                tipo_ativo: "", ticker: "", quantidade: "", preco_medio: "", data_compra: ""
-                            })
-                            setCotacaoAtual(null)
-                            setCotacaoErro("")
-                            setShowModal(true)
-                        }}>+ Novo Investimento</button>
+                        {tabAtiva === "investimentos" && (
+                            <>
+                                <div className="update-meta">
+                                    {atualizandoPrecos ? "Atualizando cotações..." : `Última atualização: ${formatarHorarioAtualizacao(ultimaAtualizacao)}`}
+                                </div>
+                                <button 
+                                    className="btn-secondary" 
+                                    onClick={() => atualizarPrecosInvestimentos(investimentos)}
+                                    disabled={atualizandoPrecos || investimentos.length === 0}
+                                    title="Atualizar preços dos ativos"
+                                >
+                                    {atualizandoPrecos ? "Atualizando..." : "🔄 Atualizar Preços"}
+                                </button>
+                                <button className="btn-primary" onClick={() => {
+                                    setEditingId(null)
+                                    setFormError("")
+                                    setFormData({
+                                        tipo_ativo: "", ticker: "", quantidade: "", preco_medio: "", data_compra: ""
+                                    })
+                                    setCotacaoAtual(null)
+                                    setCotacaoErro("")
+                                    setShowModal(true)
+                                }}>+ Novo Investimento</button>
+                            </>
+                        )}
                     </div>
                 </div>
 
+                {/* Tabs */}
+                <div className="tabs-investimento">
+                    <button 
+                        className={`tab-btn ${tabAtiva === "investimentos" ? "active" : ""}`}
+                        onClick={() => setTabAtiva("investimentos")}
+                    >
+                        Meus Investimentos
+                    </button>
+                    <button 
+                        className={`tab-btn ${tabAtiva === "rebalanceamento" ? "active" : ""}`}
+                        onClick={() => setTabAtiva("rebalanceamento")}
+                    >
+                        Rebalanceamento
+                    </button>
+                </div>
+
+                {/* Conteúdo da aba de investimentos */}
+                {tabAtiva === "investimentos" && (
+                    <>
                 {/* Cards de resumo */}
                 <div className="cards-resumo">
                     <div className="card-resumo">
@@ -790,6 +914,153 @@ export default function Investimento(){
                             </form>
                         </div>
                 </div>
+                )}
+                    </>
+                )}
+
+                {/* Conteúdo da aba de rebalanceamento */}
+                {tabAtiva === "rebalanceamento" && (
+                    <div className="rebalanceamento-container">
+                        <div className="rebalanceamento-header">
+                            <h2>Calculadora de Rebalanceamento de Carteira</h2>
+                            <p className="rebalanceamento-descricao">
+                                Defina os percentuais ideais para cada tipo de ativo e informe quanto vai aportar. 
+                                O sistema calculará automaticamente quanto investir em cada categoria.
+                            </p>
+                        </div>
+
+                        {/* Configuração de percentuais ideais */}
+                        <div className="rebalanceamento-config">
+                            <h3>Percentuais Ideais (%)</h3>
+                            <div className="percentuais-grid">
+                                {Object.keys(percentuaisIdeais).map(tipo => {
+                                    const label = tipo === "acao" ? "Ações" : 
+                                                 tipo === "bdr" ? "BDRs" :
+                                                 tipo === "etf" ? "ETFs" :
+                                                 tipo === "fii" ? "FIIs" :
+                                                 tipo === "renda_fixa" ? "Renda Fixa" :
+                                                 tipo === "cripto" ? "Criptomoedas" : tipo
+                                    return (
+                                        <div key={tipo} className="percentual-input-group">
+                                            <label>{label}</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                step="0.01"
+                                                value={percentuaisIdeais[tipo]}
+                                                onChange={(e) => {
+                                                    const novoValor = parseFloat(e.target.value) || 0
+                                                    setPercentuaisIdeais(prev => ({
+                                                        ...prev,
+                                                        [tipo]: novoValor
+                                                    }))
+                                                }}
+                                            />
+                                            <span>%</span>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                            <div className="soma-percentuais">
+                                <strong>
+                                    Soma: {(Object.values(percentuaisIdeais).reduce((sum, val) => {
+                                        const numVal = parseFloat(val) || 0
+                                        return sum + (isNaN(numVal) ? 0 : numVal)
+                                    }, 0)).toFixed(2)}%
+                                    {Math.abs(Object.values(percentuaisIdeais).reduce((sum, val) => {
+                                        const numVal = parseFloat(val) || 0
+                                        return sum + (isNaN(numVal) ? 0 : numVal)
+                                    }, 0) - 100) > 0.01 && (
+                                        <span className="aviso-percentual"> (Deveria ser 100%)</span>
+                                    )}
+                                </strong>
+                            </div>
+                        </div>
+
+                        {/* Input de aporte */}
+                        <div className="rebalanceamento-aporte">
+                            <h3>Novo Aporte</h3>
+                            <div className="aporte-input-group">
+                                <label>Quanto vou aportar (R$)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={valorAporte}
+                                    onChange={(e) => setValorAporte(e.target.value)}
+                                    placeholder="0.00"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Resumo do patrimônio */}
+                        <div className="rebalanceamento-resumo">
+                            <div className="resumo-item">
+                                <span className="resumo-label">Patrimônio Atual:</span>
+                                <span className="resumo-value">{formatarMoeda(calculoRebalanceamento?.patrimonioAtual || 0)}</span>
+                            </div>
+                            <div className="resumo-item">
+                                <span className="resumo-label">Novo Aporte:</span>
+                                <span className="resumo-value">{formatarMoeda(calculoRebalanceamento?.aporte || 0)}</span>
+                            </div>
+                            <div className="resumo-item">
+                                <span className="resumo-label">Patrimônio Futuro:</span>
+                                <span className="resumo-value destaque">{formatarMoeda(calculoRebalanceamento?.patrimonioFuturo || 0)}</span>
+                            </div>
+                        </div>
+
+                        {/* Tabela de resultados */}
+                        <div className="rebalanceamento-tabela">
+                            <h3>Resultado do Rebalanceamento</h3>
+                            <table className="tabela-rebalanceamento">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo de Ativo</th>
+                                        <th>Percentual Atual</th>
+                                        <th>Percentual Ideal</th>
+                                        <th>Valor Atual</th>
+                                        <th>Quanto Investir</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {calculoRebalanceamento?.resultados?.map((resultado, index) => {
+                                        const percentualAtual = parseFloat(resultado.percentualAtual) || 0
+                                        const percentualIdeal = parseFloat(resultado.percentualIdeal) || 0
+                                        const quantoInvestir = parseFloat(resultado.quantoInvestir) || 0
+                                        return (
+                                            <tr key={resultado.tipo} className={quantoInvestir === 0 && percentualAtual > percentualIdeal ? "acima-ideal" : ""}>
+                                                <td>
+                                                    <strong>{resultado.label}</strong>
+                                                </td>
+                                                <td>{isNaN(percentualAtual) ? "0.00" : percentualAtual.toFixed(2)}%</td>
+                                                <td>{isNaN(percentualIdeal) ? "0.00" : percentualIdeal.toFixed(2)}%</td>
+                                                <td>{formatarMoeda(resultado.valorAtual || 0)}</td>
+                                                <td className={quantoInvestir > 0 ? "valor-investir" : "sem-investimento"}>
+                                                    {formatarMoeda(quantoInvestir)}
+                                                </td>
+                                            </tr>
+                                        )
+                                    }) || (
+                                        <tr>
+                                            <td colSpan="5" style={{ textAlign: "center", padding: "20px", color: "#94a3b8" }}>
+                                                Nenhum resultado disponível
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td><strong>Total</strong></td>
+                                        <td><strong>100.00%</strong></td>
+                                        <td><strong>{(calculoRebalanceamento?.somaPercentuais && !isNaN(calculoRebalanceamento.somaPercentuais) ? calculoRebalanceamento.somaPercentuais.toFixed(2) : "0.00")}%</strong></td>
+                                        <td><strong>{formatarMoeda(calculoRebalanceamento?.patrimonioAtual || 0)}</strong></td>
+                                        <td><strong>{formatarMoeda(calculoRebalanceamento?.somaQuantoInvestir || 0)}</strong></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
                 )}
 
             </div>
