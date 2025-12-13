@@ -1014,8 +1014,8 @@ export default function Investimento(){
                                         <label>Quantidade *</label>
                                         <input
                                             type="number"
-                                            step="0.01"
-                                            min="0.01"
+                                            step="0.0000000001"
+                                            min="0.0000000001"
                                             value={formData.quantidade}
                                             onChange={(e) => {
                                                 setFormData({...formData, quantidade: e.target.value})
