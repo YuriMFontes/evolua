@@ -56,6 +56,7 @@ export default function Investimento(){
     const [cotacaoErro, setCotacaoErro] = useState("")
     const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null)
     const [cotacoesTempoReal, setCotacoesTempoReal] = useState({})
+    const [cotacaoDolar, setCotacaoDolar] = useState(null)
     
     // Estados para calculadora de rebalanceamento
     const [tabAtiva, setTabAtiva] = useState("investimentos") // "investimentos" ou "rebalanceamento"
@@ -229,6 +230,13 @@ export default function Investimento(){
         }).format(valor || 0)
     }
 
+    const formatarMoedaUSD = (valor) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
+        }).format(valor || 0)
+    }
+
     const formatarHorarioAtualizacao = (data) => {
         if (!data) return "Nunca atualizado"
         return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -238,6 +246,19 @@ export default function Investimento(){
         if (!ticker) return null
         return cotacoesTempoReal[ticker.toUpperCase()] || null
     }, [cotacoesTempoReal])
+
+    const buscarCotacaoDolar = useCallback(async () => {
+        try {
+            const resp = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL")
+            const json = await resp.json()
+            const valor = parseFloat(json?.USDBRL?.bid)
+            if (!Number.isNaN(valor) && valor > 0) {
+                setCotacaoDolar(valor)
+            }
+        } catch (error) {
+            console.error("Erro ao buscar cotação do dólar:", error)
+        }
+    }, [])
 
     const obterPrecoAtual = useCallback((inv) => {
         // Para renda fixa, usa o preço médio (valor investido)
@@ -377,7 +398,8 @@ export default function Investimento(){
 
                 setCotacaoAtual({
                     ...resultado,
-                    ticker
+                    ticker,
+                    moeda: formData.tipo_ativo === "etf" ? "USD" : "BRL"
                 })
 
                 setFormData(prev => ({
@@ -386,6 +408,10 @@ export default function Investimento(){
                     preco_medio: resultado.preco ? resultado.preco.toFixed(2) : prev.preco_medio,
                     data_compra: prev.data_compra || (resultado.atualizadoEm ? resultado.atualizadoEm.split("T")[0] : prev.data_compra)
                 }))
+
+                if (formData.tipo_ativo === "etf" && !cotacaoDolar) {
+                    buscarCotacaoDolar()
+                }
             }
         } catch (error) {
             console.error("[Investimentos] Erro ao buscar cotação:", error)
@@ -917,9 +943,9 @@ export default function Investimento(){
                                                     <td><strong>{inv.ticker}</strong></td>
                                                     <td>{TIPOS_ATIVO.find(t => t.value === inv.tipo_ativo)?.label || inv.tipo_ativo}</td>
                                                     <td>{inv.quantidade}</td>
-                                                    <td>{formatarMoeda(inv.preco_medio)}</td>
+                                                    <td>{inv.tipo_ativo === "etf" ? formatarMoedaUSD(inv.preco_medio) : formatarMoeda(inv.preco_medio)}</td>
                                                     <td>
-                                                        {formatarMoeda(precoAtual)}
+                                                        {inv.tipo_ativo === "etf" ? formatarMoedaUSD(precoAtual) : formatarMoeda(precoAtual)}
                                                         {(obterDadosTempoReal(inv.ticker)?.preco || inv.preco_atual) && (
                                                             <span style={{ fontSize: "10px", marginLeft: "4px", color: "#10b981" }} title="Preço atualizado via API">✓</span>
                                                         )}
@@ -929,10 +955,10 @@ export default function Investimento(){
                                                             ? `${variacaoTempoReal >= 0 ? "+" : ""}${variacaoTempoReal.toFixed(2)}%`
                                                             : "—"}
                                                     </td>
-                                                    <td>{formatarMoeda(valorInvestido)}</td>
-                                                    <td>{formatarMoeda(valorAtual)}</td>
+                                                    <td>{inv.tipo_ativo === "etf" ? formatarMoedaUSD(valorInvestido) : formatarMoeda(valorInvestido)}</td>
+                                                    <td>{inv.tipo_ativo === "etf" ? formatarMoedaUSD(valorAtual) : formatarMoeda(valorAtual)}</td>
                                                     <td className={lucro >= 0 ? "positive" : "negative"}>
-                                                        {formatarMoeda(lucro)} ({rentabilidade}%)
+                                                        {inv.tipo_ativo === "etf" ? formatarMoedaUSD(lucro) : formatarMoeda(lucro)} ({rentabilidade}%)
                                                     </td>
                                                     <td>{percentualCarteira(inv)}%</td>
                                                     <td>
@@ -971,12 +997,16 @@ export default function Investimento(){
                                     <label>Tipo de Ativo *</label>
                                     <select
                                         value={formData.tipo_ativo}
-                                        onChange={(e) => {
-                                            setFormData({...formData, tipo_ativo: e.target.value, ticker: ""})
-                                            setFormError("")
-                                            setCotacaoAtual(null)
-                                            setCotacaoErro("")
-                                        }}
+                                            onChange={async (e) => {
+                                                const novoTipo = e.target.value
+                                                setFormData({...formData, tipo_ativo: novoTipo, ticker: ""})
+                                                setFormError("")
+                                                setCotacaoAtual(null)
+                                                setCotacaoErro("")
+                                                if (novoTipo === "etf" && !cotacaoDolar) {
+                                                    await buscarCotacaoDolar()
+                                                }
+                                            }}
                                     >
                                         <option value="">Selecione o tipo...</option>
                                         {TIPOS_ATIVO.map(tipo => (
@@ -1055,7 +1085,12 @@ export default function Investimento(){
                                                 <span className="cotacao-ticker">{cotacaoAtual.ticker}</span>
                                             </div>
                                             <div className="cotacao-valores">
-                                                <span className="cotacao-preco">{formatarMoeda(cotacaoAtual.preco)}</span>
+                                                <span className="cotacao-preco">
+                                                    {formData.tipo_ativo === "etf"
+                                                        ? formatarMoedaUSD(cotacaoAtual.preco)
+                                                        : formatarMoeda(cotacaoAtual.preco)
+                                                    }
+                                                </span>
                                                 {typeof cotacaoAtual.variacao === "number" && !Number.isNaN(cotacaoAtual.variacao) && (
                                                     <span className={`cotacao-variacao ${cotacaoAtual.variacao >= 0 ? "positivo" : "negativo"}`}>
                                                         {cotacaoAtual.variacao >= 0 ? "+" : ""}{cotacaoAtual.variacao.toFixed(2)}%
@@ -1066,9 +1101,20 @@ export default function Investimento(){
                                     )}
                                     {cotacaoAtual && parseFloat(formData.quantidade) > 0 && (
                                         <p className="cotacao-total">
-                                            Valor estimado ({formData.quantidade} un.):{" "}
+                                            Valor estimado ({formData.quantidade} un.) {formData.tipo_ativo === "etf" ? "em US$" : "em R$"}:{" "}
                                             <strong>
-                                                {formatarMoeda(cotacaoAtual.preco * parseFloat(formData.quantidade))}
+                                                {formData.tipo_ativo === "etf"
+                                                    ? formatarMoedaUSD(cotacaoAtual.preco * parseFloat(formData.quantidade))
+                                                    : formatarMoeda(cotacaoAtual.preco * parseFloat(formData.quantidade))
+                                                }
+                                            </strong>
+                                        </p>
+                                    )}
+                                    {formData.tipo_ativo === "etf" && cotacaoAtual && parseFloat(formData.quantidade) > 0 && cotacaoDolar && (
+                                        <p className="cotacao-total">
+                                            Valor estimado em R$ (usando dólar de agora):{" "}
+                                            <strong>
+                                                {formatarMoeda(cotacaoAtual.preco * parseFloat(formData.quantidade) * cotacaoDolar)}
                                             </strong>
                                         </p>
                                     )}
@@ -1090,7 +1136,7 @@ export default function Investimento(){
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label>Preço Médio (R$) *</label>
+                                        <label>Preço Médio ({formData.tipo_ativo === "etf" ? "US$" : "R$"}) *</label>
                                         <input
                                             type="number"
                                             step="0.01"
