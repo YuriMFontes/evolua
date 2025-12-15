@@ -280,6 +280,34 @@
     font-weight: 600;
 }
 
+.grupo-investimentos {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+}
+
+.grupo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 12px;
+}
+
+.grupo-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.grupo-header span {
+    font-size: 13px;
+    color: #64748b;
+}
+
 .btn-edit,
 .btn-delete {
     background: none;
@@ -1259,6 +1287,8 @@ html.dark-mode .form-error {
     padding: 30px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     margin-top: 20px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .rebalanceamento-header {
@@ -1527,6 +1557,104 @@ html.dark-mode .form-error {
     .tabela-rebalanceamento th,
     .tabela-rebalanceamento td {
         padding: 10px;
+    }
+}
+
+@media screen and (max-width: 640px) {
+    .rebalanceamento-container {
+        padding: 20px;
+    }
+
+    .rebalanceamento-header h2 {
+        font-size: 20px;
+    }
+
+    .rebalanceamento-descricao {
+        font-size: 13px;
+    }
+
+    .rebalanceamento-config,
+    .rebalanceamento-aporte {
+        padding: 16px;
+    }
+
+    .tabela-rebalanceamento {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .tabela-rebalanceamento thead {
+        display: none;
+    }
+
+    .tabela-rebalanceamento tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .tabela-rebalanceamento tbody tr {
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .tabela-rebalanceamento tbody tr:hover {
+        background: #fff;
+    }
+
+    .tabela-rebalanceamento td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 13px;
+    }
+
+    .tabela-rebalanceamento td:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .tabela-rebalanceamento td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    .tabela-rebalanceamento tfoot {
+        display: block;
+        margin-top: 12px;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+
+    .tabela-rebalanceamento tfoot tr {
+        display: flex;
+        flex-direction: column;
+        padding: 12px;
+    }
+
+    .tabela-rebalanceamento tfoot td {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        font-size: 13px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .tabela-rebalanceamento tfoot td:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
     }
 }
 
