@@ -78,6 +78,20 @@ export default function Investimento(){
         setSidebarOpen(false)
     }, [])
 
+    // Buscar cotação do dólar (usado para converter ETFs para BRL)
+    const buscarCotacaoDolar = useCallback(async () => {
+        try {
+            const resp = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL")
+            const json = await resp.json()
+            const valor = parseFloat(json?.USDBRL?.bid)
+            if (!Number.isNaN(valor) && valor > 0) {
+                setCotacaoDolar(valor)
+            }
+        } catch (error) {
+            console.error("Erro ao buscar cotação do dólar:", error)
+        }
+    }, [])
+
     // Atualizar preços dos investimentos via API (suporta todos os tipos)
     const atualizarPrecosInvestimentos = useCallback(async (investimentosList) => {
         if (!user || !investimentosList || investimentosList.length === 0) {
@@ -141,6 +155,9 @@ export default function Investimento(){
                 alert("Nenhum preço foi encontrado nas APIs. Verifique se os tickers estão corretos.")
                 return
             }
+
+            // Atualizar cotação do dólar junto com os preços, para manter conversão em tempo quase real
+            await buscarCotacaoDolar()
             
             // Atualizar cada investimento com o preço atual
             const atualizacoes = investimentosList.map(async (inv) => {
@@ -179,7 +196,7 @@ export default function Investimento(){
         } finally {
             setAtualizandoPrecos(false)
         }
-    }, [user])
+    }, [user, buscarCotacaoDolar])
 
     // Buscar investimentos
     const fetchInvestimentos = useCallback(async () => {
@@ -222,6 +239,11 @@ export default function Investimento(){
         }
     }, [showModal])
 
+    // Buscar cotação inicial do dólar ao carregar a página de investimentos
+    useEffect(() => {
+        buscarCotacaoDolar()
+    }, [buscarCotacaoDolar])
+
     // Formatar moeda
     const formatarMoeda = (valor) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -241,24 +263,11 @@ export default function Investimento(){
         if (!data) return "Nunca atualizado"
         return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     }
-
+    
     const obterDadosTempoReal = useCallback((ticker) => {
         if (!ticker) return null
         return cotacoesTempoReal[ticker.toUpperCase()] || null
     }, [cotacoesTempoReal])
-
-    const buscarCotacaoDolar = useCallback(async () => {
-        try {
-            const resp = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL")
-            const json = await resp.json()
-            const valor = parseFloat(json?.USDBRL?.bid)
-            if (!Number.isNaN(valor) && valor > 0) {
-                setCotacaoDolar(valor)
-            }
-        } catch (error) {
-            console.error("Erro ao buscar cotação do dólar:", error)
-        }
-    }, [])
 
     const obterPrecoAtual = useCallback((inv) => {
         // Para renda fixa, usa o preço médio (valor investido)
@@ -281,19 +290,37 @@ export default function Investimento(){
     // Calcular valor total investido
     const valorTotalInvestido = useMemo(() => {
         return investimentos.reduce((sum, inv) => {
-            const investido = (parseFloat(inv.quantidade) * parseFloat(inv.preco_medio)) + parseFloat(inv.taxas || 0)
+            const quantidade = parseFloat(inv.quantidade) || 0
+            const precoMedio = parseFloat(inv.preco_medio) || 0
+            const taxas = parseFloat(inv.taxas || 0)
+
+            // Para ETF, converte de USD para BRL usando a cotação atual do dólar
+            if (inv.tipo_ativo === "etf" && cotacaoDolar && cotacaoDolar > 0) {
+                const investidoBRL = (quantidade * precoMedio * cotacaoDolar) + taxas
+                return sum + investidoBRL
+            }
+
+            const investido = (quantidade * precoMedio) + taxas
             return sum + investido
         }, 0)
-    }, [investimentos])
+    }, [investimentos, cotacaoDolar])
 
     // Calcular valor atual da carteira (usa preço atual da API ou preço médio como fallback)
     const valorAtualCarteira = useMemo(() => {
         return investimentos.reduce((sum, inv) => {
+            const quantidade = parseFloat(inv.quantidade) || 0
             const precoAtual = obterPrecoAtual(inv)
-            const valorAtual = parseFloat(inv.quantidade) * precoAtual
+
+            // Para ETF, converte de USD para BRL usando a cotação atual do dólar
+            if (inv.tipo_ativo === "etf" && cotacaoDolar && cotacaoDolar > 0) {
+                const valorAtualBRL = quantidade * precoAtual * cotacaoDolar
+                return sum + valorAtualBRL
+            }
+
+            const valorAtual = quantidade * precoAtual
             return sum + valorAtual
         }, 0)
-    }, [investimentos, obterPrecoAtual])
+    }, [investimentos, obterPrecoAtual, cotacaoDolar])
 
     // Calcular lucro/prejuízo
     const lucroPrejuizo = useMemo(() => {
@@ -432,12 +459,19 @@ export default function Investimento(){
             if (!grupos[tipo]) {
                 grupos[tipo] = { quantidade: 0, valor: 0 }
             }
-            grupos[tipo].quantidade += parseFloat(inv.quantidade || 0)
+            const quantidade = parseFloat(inv.quantidade || 0)
+            grupos[tipo].quantidade += quantidade
             const precoAtual = obterPrecoAtual(inv)
-            grupos[tipo].valor += parseFloat(inv.quantidade || 0) * precoAtual
+
+            // Para ETF, valor em BRL usando cotação do dólar
+            if (tipo === "etf" && cotacaoDolar && cotacaoDolar > 0) {
+                grupos[tipo].valor += quantidade * precoAtual * cotacaoDolar
+            } else {
+                grupos[tipo].valor += quantidade * precoAtual
+            }
         })
         return grupos
-    }, [investimentos, obterPrecoAtual])
+    }, [investimentos, obterPrecoAtual, cotacaoDolar])
 
 
     // Dados para gráfico de pizza - composição por tipo (VALOR em R$)
@@ -684,7 +718,14 @@ export default function Investimento(){
     // Calcular percentual da carteira por ativo
     const percentualCarteira = (inv) => {
         if (valorAtualCarteira === 0) return 0
-        const valorAtual = parseFloat(inv.quantidade) * obterPrecoAtual(inv)
+        const quantidade = parseFloat(inv.quantidade) || 0
+        const precoAtual = obterPrecoAtual(inv)
+
+        // Para ETF, considera valor em BRL na base da carteira
+        const valorAtual = (inv.tipo_ativo === "etf" && cotacaoDolar && cotacaoDolar > 0)
+            ? quantidade * precoAtual * cotacaoDolar
+            : quantidade * precoAtual
+
         return ((valorAtual / valorAtualCarteira) * 100).toFixed(2)
     }
 
@@ -696,11 +737,18 @@ export default function Investimento(){
             if (!grupos[tipo]) {
                 grupos[tipo] = 0
             }
+            const quantidade = parseFloat(inv.quantidade || 0)
             const precoAtual = obterPrecoAtual(inv)
-            grupos[tipo] += parseFloat(inv.quantidade || 0) * precoAtual
+
+            // Para ETF, considera valor em BRL
+            if (tipo === "etf" && cotacaoDolar && cotacaoDolar > 0) {
+                grupos[tipo] += quantidade * precoAtual * cotacaoDolar
+            } else {
+                grupos[tipo] += quantidade * precoAtual
+            }
         })
         return grupos
-    }, [investimentos, obterPrecoAtual])
+    }, [investimentos, obterPrecoAtual, cotacaoDolar])
 
     // Calcular rebalanceamento
     const calculoRebalanceamento = useMemo(() => {
