@@ -826,7 +826,7 @@ export default function Investimento(){
         // Mapear tipos do banco para os tipos da calculadora
         // O banco pode ter: "acao", "fii", "bdr", "etf", "renda_fixa", "cripto"
         // A calculadora usa os mesmos nomes, então podemos usar diretamente
-        const resultados = Object.keys(percentuaisIdeais).map(tipo => {
+        const resultadosBrutos = Object.keys(percentuaisIdeais).map(tipo => {
             // Buscar o valor atual do tipo correspondente no banco
             // Os tipos são os mesmos, então podemos usar diretamente
             const valorAtual = parseFloat(valoresPorTipo[tipo]) || 0
@@ -854,16 +854,44 @@ export default function Investimento(){
                 percentualAtual: isNaN(percentualAtualNum) ? 0 : parseFloat(percentualAtualNum.toFixed(2)),
                 percentualIdeal: isNaN(percentualIdeal) ? 0 : percentualIdeal,
                 valorIdeal: isNaN(valorIdeal) ? 0 : valorIdeal,
-                quantoInvestir: isNaN(quantoInvestir) ? 0 : parseFloat(quantoInvestir.toFixed(2))
+                // Guardar o valor bruto (antes de ajustar para o aporte disponível)
+                quantoInvestir: isNaN(quantoInvestir) ? 0 : quantoInvestir
             }
         })
+
+        // Ajustar os valores de "quanto investir" para nunca ultrapassar o aporte informado
+        const somaBruta = resultadosBrutos.reduce((sum, r) => {
+            const valor = parseFloat(r.quantoInvestir) || 0
+            return sum + (isNaN(valor) ? 0 : valor)
+        }, 0)
+
+        let resultadosAjustados = resultadosBrutos
+
+        if (aporte > 0 && somaBruta > aporte) {
+            const fator = aporte / somaBruta
+            resultadosAjustados = resultadosBrutos.map(r => {
+                const bruto = parseFloat(r.quantoInvestir) || 0
+                // Sempre arredondar para baixo para garantir que a soma fique <= aporte
+                const ajustado = Math.floor(bruto * fator * 100) / 100
+                return {
+                    ...r,
+                    quantoInvestir: isNaN(ajustado) ? 0 : ajustado
+                }
+            })
+        } else {
+            // Se não precisa ajustar, apenas normaliza para 2 casas decimais
+            resultadosAjustados = resultadosBrutos.map(r => ({
+                ...r,
+                quantoInvestir: isNaN(r.quantoInvestir) ? 0 : parseFloat(r.quantoInvestir.toFixed(2))
+            }))
+        }
 
         // Verificar se a soma dos percentuais ideais é 100%
         const somaPercentuais = Object.values(percentuaisIdeais).reduce((sum, val) => {
             const numVal = parseFloat(val) || 0
             return sum + (isNaN(numVal) ? 0 : numVal)
         }, 0)
-        const somaQuantoInvestir = resultados.reduce((sum, r) => {
+        const somaQuantoInvestir = resultadosAjustados.reduce((sum, r) => {
             const valor = parseFloat(r.quantoInvestir) || 0
             return sum + (isNaN(valor) ? 0 : valor)
         }, 0)
@@ -874,7 +902,7 @@ export default function Investimento(){
             patrimonioFuturo: isNaN(patrimonioFuturo) ? 0 : patrimonioFuturo,
             somaPercentuais: isNaN(somaPercentuais) ? 0 : somaPercentuais,
             somaQuantoInvestir: isNaN(somaQuantoInvestir) ? 0 : somaQuantoInvestir,
-            resultados: Array.isArray(resultados) ? resultados : []
+            resultados: Array.isArray(resultadosAjustados) ? resultadosAjustados : []
         }
     }, [valorAtualCarteira, valorAporte, percentuaisIdeais, valoresPorTipo])
 
