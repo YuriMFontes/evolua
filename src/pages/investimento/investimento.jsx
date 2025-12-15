@@ -1,7 +1,7 @@
 import "./investimento.css"
 import Header from "../../componentes/header/header"
 import Sidebar from "../../componentes/side-bar/side-bar"
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, Fragment } from "react"
 import { supabase } from "../../lib/supabase"
 import { useAuth } from "../../contexts/AuthContext"
 import { buscarPrecosMultiplos, buscarPrecoAtual } from "../../lib/yahoo-finance"
@@ -284,6 +284,27 @@ export default function Investimento(){
         if (valorTotalInvestido === 0) return 0
         return ((lucroPrejuizo / valorTotalInvestido) * 100).toFixed(2)
     }, [lucroPrejuizo, valorTotalInvestido])
+
+    // Agrupar investimentos por tipo para exibir seções separadas na tabela
+    const investimentosAgrupados = useMemo(() => {
+        const grupos = {}
+        investimentos.forEach(inv => {
+            const tipo = inv.tipo_ativo || "outros"
+            if (!grupos[tipo]) {
+                grupos[tipo] = []
+            }
+            grupos[tipo].push(inv)
+        })
+
+        const ordemTipos = ["acao", "fii", "etf", "bdr", "renda_fixa", "cripto", "outros"]
+        return ordemTipos
+            .filter(tipo => grupos[tipo]?.length)
+            .map(tipo => ({
+                tipo,
+                label: TIPOS_ATIVO.find(t => t.value === tipo)?.label || tipo,
+                itens: grupos[tipo]
+            }))
+    }, [investimentos])
 
     const handleBuscarCotacao = useCallback(async () => {
         if (!formData.ticker || formData.ticker.trim() === "") {
@@ -878,44 +899,51 @@ export default function Investimento(){
                                 </tr>
                             </thead>
                             <tbody>
-                                {investimentos.map(inv => {
-                                    const precoAtual = obterPrecoAtual(inv)
-                                    const valorInvestido = parseFloat(inv.quantidade) * parseFloat(inv.preco_medio) + parseFloat(inv.taxas || 0)
-                                    const valorAtual = parseFloat(inv.quantidade) * precoAtual
-                                    const lucro = valorAtual - valorInvestido
-                                    const rentabilidade = valorInvestido > 0 ? ((lucro / valorInvestido) * 100).toFixed(2) : 0
-                                    const variacaoTempoReal = obterDadosTempoReal(inv.ticker)?.variacao
-
-                                    return (
-                                        <tr key={inv.id}>
-                                            <td><strong>{inv.ticker}</strong></td>
-                                            <td>{TIPOS_ATIVO.find(t => t.value === inv.tipo_ativo)?.label || inv.tipo_ativo}</td>
-                                            <td>{inv.quantidade}</td>
-                                            <td>{formatarMoeda(inv.preco_medio)}</td>
-                                            <td>
-                                                {formatarMoeda(precoAtual)}
-                                                {(obterDadosTempoReal(inv.ticker)?.preco || inv.preco_atual) && (
-                                                    <span style={{ fontSize: "10px", marginLeft: "4px", color: "#10b981" }} title="Preço atualizado via API">✓</span>
-                                                )}
-                                            </td>
-                                            <td className={variacaoTempoReal ? (variacaoTempoReal >= 0 ? "positive" : "negative") : ""}>
-                                                {typeof variacaoTempoReal === "number" && !Number.isNaN(variacaoTempoReal)
-                                                    ? `${variacaoTempoReal >= 0 ? "+" : ""}${variacaoTempoReal.toFixed(2)}%`
-                                                    : "—"}
-                                            </td>
-                                            <td>{formatarMoeda(valorInvestido)}</td>
-                                            <td>{formatarMoeda(valorAtual)}</td>
-                                            <td className={lucro >= 0 ? "positive" : "negative"}>
-                                                {formatarMoeda(lucro)} ({rentabilidade}%)
-                                            </td>
-                                            <td>{percentualCarteira(inv)}%</td>
-                                            <td>
-                                                <button className="btn-edit" onClick={() => handleEdit(inv)}>✏️</button>
-                                                <button className="btn-delete" onClick={() => handleDelete(inv.id)}>🗑️</button>
-                                            </td>
+                                {investimentosAgrupados.map(grupo => (
+                                    <Fragment key={grupo.tipo}>
+                                        <tr className="grupo-tipo">
+                                            <td colSpan="11">{grupo.label}</td>
                                         </tr>
-                                    )
-                                })}
+                                        {grupo.itens.map(inv => {
+                                            const precoAtual = obterPrecoAtual(inv)
+                                            const valorInvestido = parseFloat(inv.quantidade) * parseFloat(inv.preco_medio) + parseFloat(inv.taxas || 0)
+                                            const valorAtual = parseFloat(inv.quantidade) * precoAtual
+                                            const lucro = valorAtual - valorInvestido
+                                            const rentabilidade = valorInvestido > 0 ? ((lucro / valorInvestido) * 100).toFixed(2) : 0
+                                            const variacaoTempoReal = obterDadosTempoReal(inv.ticker)?.variacao
+
+                                            return (
+                                                <tr key={inv.id}>
+                                                    <td><strong>{inv.ticker}</strong></td>
+                                                    <td>{TIPOS_ATIVO.find(t => t.value === inv.tipo_ativo)?.label || inv.tipo_ativo}</td>
+                                                    <td>{inv.quantidade}</td>
+                                                    <td>{formatarMoeda(inv.preco_medio)}</td>
+                                                    <td>
+                                                        {formatarMoeda(precoAtual)}
+                                                        {(obterDadosTempoReal(inv.ticker)?.preco || inv.preco_atual) && (
+                                                            <span style={{ fontSize: "10px", marginLeft: "4px", color: "#10b981" }} title="Preço atualizado via API">✓</span>
+                                                        )}
+                                                    </td>
+                                                    <td className={variacaoTempoReal ? (variacaoTempoReal >= 0 ? "positive" : "negative") : ""}>
+                                                        {typeof variacaoTempoReal === "number" && !Number.isNaN(variacaoTempoReal)
+                                                            ? `${variacaoTempoReal >= 0 ? "+" : ""}${variacaoTempoReal.toFixed(2)}%`
+                                                            : "—"}
+                                                    </td>
+                                                    <td>{formatarMoeda(valorInvestido)}</td>
+                                                    <td>{formatarMoeda(valorAtual)}</td>
+                                                    <td className={lucro >= 0 ? "positive" : "negative"}>
+                                                        {formatarMoeda(lucro)} ({rentabilidade}%)
+                                                    </td>
+                                                    <td>{percentualCarteira(inv)}%</td>
+                                                    <td>
+                                                        <button className="btn-edit" onClick={() => handleEdit(inv)}>✏️</button>
+                                                        <button className="btn-delete" onClick={() => handleDelete(inv.id)}>🗑️</button>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </Fragment>
+                                ))}
                             </tbody>
                         </table>
                     )}
