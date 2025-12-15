@@ -70,6 +70,48 @@ export default function Investimento(){
     })
     const [valorAporte, setValorAporte] = useState("")
 
+    // Carregar configurações salvas de rebalanceamento (percentuais + aporte)
+    useEffect(() => {
+        if (!user) return
+        try {
+            const key = `rebalanceamento_${user.id}`
+            const stored = typeof window !== "undefined" ? window.localStorage.getItem(key) : null
+            if (stored) {
+                const parsed = JSON.parse(stored)
+                if (parsed && typeof parsed === "object") {
+                    if (parsed.percentuaisIdeais) {
+                        setPercentuaisIdeais(prev => ({
+                            ...prev,
+                            ...parsed.percentuaisIdeais
+                        }))
+                    }
+                    if (parsed.valorAporte !== undefined && parsed.valorAporte !== null) {
+                        setValorAporte(String(parsed.valorAporte))
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Erro ao carregar configurações de rebalanceamento:", error)
+        }
+    }, [user])
+
+    // Salvar configurações de rebalanceamento sempre que o usuário alterar
+    useEffect(() => {
+        if (!user) return
+        try {
+            const key = `rebalanceamento_${user.id}`
+            const payload = {
+                percentuaisIdeais,
+                valorAporte
+            }
+            if (typeof window !== "undefined") {
+                window.localStorage.setItem(key, JSON.stringify(payload))
+            }
+        } catch (error) {
+            console.error("Erro ao salvar configurações de rebalanceamento:", error)
+        }
+    }, [user, percentuaisIdeais, valorAporte])
+
     const toggleSidebar = useCallback(() => {
         setSidebarOpen(prev => !prev)
     }, [])
@@ -408,6 +450,17 @@ export default function Investimento(){
                     atualizadoEm: resultado.atualizadoEm,
                     tipo: 'cripto'
                 })
+
+                // Guardar cotação em tempo real para ser usada na tabela (coluna Variação/Lucro)
+                setCotacoesTempoReal(prev => ({
+                    ...prev,
+                    [ticker]: {
+                        preco: resultado.preco,
+                        variacao: resultado.variacao,
+                        nome: resultado.nome || ticker,
+                        tipo: 'cripto'
+                    }
+                }))
 
                 setFormData(prev => ({
                     ...prev,

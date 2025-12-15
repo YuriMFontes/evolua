@@ -61,6 +61,7 @@ export default function Dashboard(){
     const [financeiro, setFinanceiro] = useState([])
     const [ultimasTransacoes, setUltimasTransacoes] = useState([])
     const [investimentos, setInvestimentos] = useState([])
+    const [cotacaoDolar, setCotacaoDolar] = useState(null)
     const [medidasSaude, setMedidasSaude] = useState([])
     const [treinosSaude, setTreinosSaude] = useState([])
     const [metaSaude, setMetaSaude] = useState(null)
@@ -72,6 +73,20 @@ export default function Dashboard(){
 
     const closeSidebar = useCallback(() => {
         setSidebarOpen(false)
+    }, [])
+
+    // Buscar cotação do dólar (para converter ETFs em BRL no card de investimentos)
+    const buscarCotacaoDolar = useCallback(async () => {
+        try {
+            const resp = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL")
+            const json = await resp.json()
+            const valor = parseFloat(json?.USDBRL?.bid)
+            if (!Number.isNaN(valor) && valor > 0) {
+                setCotacaoDolar(valor)
+            }
+        } catch (error) {
+            console.error("Erro ao buscar cotação do dólar (dashboard):", error)
+        }
     }, [])
 
     // Buscar dados do financeiro do mês atual
@@ -142,10 +157,12 @@ export default function Dashboard(){
 
             if (error) throw error
             setInvestimentos(data || [])
+            // Atualiza também a cotação do dólar para manter conversão consistente com a tela de investimentos
+            await buscarCotacaoDolar()
         } catch (error) {
             console.error("Erro ao buscar investimentos:", error)
         }
-    }, [user])
+    }, [user, buscarCotacaoDolar])
 
     // Atualizar preços dos investimentos via API (opcional, em background)
     useEffect(() => {
@@ -296,13 +313,31 @@ export default function Dashboard(){
     // Calcular valores dos investimentos
     const calcularInvestimentos = useMemo(() => {
         const valorTotalInvestido = investimentos.reduce((sum, inv) => {
-            const investido = (parseFloat(inv.quantidade) * parseFloat(inv.preco_medio)) + parseFloat(inv.taxas || 0)
+            const quantidade = parseFloat(inv.quantidade) || 0
+            const precoMedio = parseFloat(inv.preco_medio) || 0
+            const taxas = parseFloat(inv.taxas || 0)
+
+            // Para ETF, converte de USD para BRL usando cotação do dólar (igual tela de investimentos)
+            if (inv.tipo_ativo === "etf" && cotacaoDolar && cotacaoDolar > 0) {
+                const investidoBRL = (quantidade * precoMedio * cotacaoDolar) + taxas
+                return sum + investidoBRL
+            }
+
+            const investido = (quantidade * precoMedio) + taxas
             return sum + investido
         }, 0)
 
         const valorAtualCarteira = investimentos.reduce((sum, inv) => {
+            const quantidade = parseFloat(inv.quantidade) || 0
             const precoAtual = parseFloat(inv.preco_atual || inv.preco_medio)
-            const valorAtual = parseFloat(inv.quantidade) * precoAtual
+
+            // Para ETF, converte de USD para BRL
+            if (inv.tipo_ativo === "etf" && cotacaoDolar && cotacaoDolar > 0) {
+                const valorAtualBRL = quantidade * precoAtual * cotacaoDolar
+                return sum + valorAtualBRL
+            }
+
+            const valorAtual = quantidade * precoAtual
             return sum + valorAtual
         }, 0)
 
@@ -318,7 +353,7 @@ export default function Dashboard(){
             rentabilidadePercentual,
             totalAtivos: investimentos.length
         }
-    }, [investimentos])
+    }, [investimentos, cotacaoDolar])
 
     // Preparar dados do gráfico
     const chartData = useMemo(() => {
