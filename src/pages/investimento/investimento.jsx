@@ -508,14 +508,18 @@ export default function Investimento(){
                 }
             }
             
+            const quantidadeNova = parseFloat(formData.quantidade)
+            const precoMedioNovo = parseFloat(formData.preco_medio)
+            const taxasNovaCompra = parseFloat(formData.taxas || 0)
+
             const dataToSave = {
                 user_id: user.id,
                 tipo_ativo: formData.tipo_ativo,
                 ticker: ticker,
-                quantidade: parseFloat(formData.quantidade),
-                preco_medio: parseFloat(formData.preco_medio),
+                quantidade: quantidadeNova,
+                preco_medio: precoMedioNovo,
                 preco_atual: precoAtual, // Preço atual da API ou preço médio como fallback
-                taxas: parseFloat(formData.taxas || 0),
+                taxas: taxasNovaCompra,
                 data_compra: formData.data_compra
             }
 
@@ -526,10 +530,43 @@ export default function Investimento(){
                     .eq("id", editingId)
                 if (error) throw error
             } else {
-                const { error } = await supabase
-                    .from("investimentos")
-                    .insert([dataToSave])
-                if (error) throw error
+                // Se já existir o mesmo ativo, mescla quantidade e recalcula preço médio ponderado
+                const existente = investimentos.find(inv => 
+                    inv.ticker?.toUpperCase() === ticker && inv.tipo_ativo === formData.tipo_ativo
+                )
+
+                if (existente) {
+                    const quantidadeAnterior = parseFloat(existente.quantidade) || 0
+                    const precoMedioAnterior = parseFloat(existente.preco_medio) || 0
+                    const taxasAnteriores = parseFloat(existente.taxas || 0)
+
+                    const quantidadeTotal = quantidadeAnterior + quantidadeNova
+                    const totalInvestidoAnterior = (quantidadeAnterior * precoMedioAnterior) + taxasAnteriores
+                    const totalInvestidoNovo = (quantidadeNova * precoMedioNovo) + taxasNovaCompra
+                    const precoMedioRecalculado = (totalInvestidoAnterior + totalInvestidoNovo) / quantidadeTotal
+                    const dataCompraAnterior = existente.data_compra ? existente.data_compra.split("T")[0] : null
+                    const dataCompraMaisAntiga = dataCompraAnterior && formData.data_compra
+                        ? (new Date(dataCompraAnterior) <= new Date(formData.data_compra) ? dataCompraAnterior : formData.data_compra)
+                        : (formData.data_compra || dataCompraAnterior || new Date().toISOString().split("T")[0])
+
+                    const { error } = await supabase
+                        .from("investimentos")
+                        .update({
+                            quantidade: quantidadeTotal,
+                            preco_medio: precoMedioRecalculado,
+                            preco_atual: precoAtual,
+                            taxas: taxasAnteriores + taxasNovaCompra,
+                            data_compra: dataCompraMaisAntiga
+                        })
+                        .eq("id", existente.id)
+
+                    if (error) throw error
+                } else {
+                    const { error } = await supabase
+                        .from("investimentos")
+                        .insert([dataToSave])
+                    if (error) throw error
+                }
             }
 
             setShowModal(false)
@@ -824,90 +861,63 @@ export default function Investimento(){
                     ) : investimentos.length === 0 ? (
                         <p className="sem-dados">Nenhum investimento cadastrado. Clique em "Novo Investimento" para começar.</p>
                     ) : (
-                        Object.entries(
-                            investimentos.reduce((acc, inv) => {
-                                const key = inv.tipo_ativo || "outros"
-                                if (!acc[key]) acc[key] = []
-                                acc[key].push(inv)
-                                return acc
-                            }, {})
-                        )
-                        .sort(([tipoA], [tipoB]) => {
-                            const labelA = TIPOS_ATIVO.find(t => t.value === tipoA)?.label || tipoA
-                            const labelB = TIPOS_ATIVO.find(t => t.value === tipoB)?.label || tipoB
-                            return labelA.localeCompare(labelB)
-                        })
-                        .map(([tipo, lista]) => {
-                            const labelTipo = TIPOS_ATIVO.find(t => t.value === tipo)?.label || tipo
-                            const totalTipo = lista.length
-                            return (
-                                <div className="grupo-investimentos" key={tipo}>
-                                    <div className="grupo-header">
-                                        <h3>{labelTipo}</h3>
-                                        <span>{totalTipo} ativo{totalTipo > 1 ? "s" : ""}</span>
-                                    </div>
-                                    <table className="tabela-investimentos">
-                                        <thead>
-                                            <tr>
-                                                <th>Ticker</th>
-                                                <th>Tipo</th>
-                                                <th>Quantidade</th>
-                                                <th>Preço Médio</th>
-                                                <th>Preço Atual</th>
-                                                <th>Variação</th>
-                                                <th>Valor Investido</th>
-                                                <th>Valor Atual</th>
-                                                <th>Lucro/Prejuízo</th>
-                                                <th>% Carteira</th>
-                                                <th>Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {lista
-                                                .sort((a, b) => a.ticker.localeCompare(b.ticker))
-                                                .map(inv => {
-                                                    const precoAtual = obterPrecoAtual(inv)
-                                                    const valorInvestido = parseFloat(inv.quantidade) * parseFloat(inv.preco_medio) + parseFloat(inv.taxas || 0)
-                                                    const valorAtual = parseFloat(inv.quantidade) * precoAtual
-                                                    const lucro = valorAtual - valorInvestido
-                                                    const rentabilidade = valorInvestido > 0 ? ((lucro / valorInvestido) * 100).toFixed(2) : 0
-                                                    const variacaoTempoReal = obterDadosTempoReal(inv.ticker)?.variacao
+                        <table className="tabela-investimentos">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th>Tipo</th>
+                                    <th>Quantidade</th>
+                                    <th>Preço Médio</th>
+                                    <th>Preço Atual</th>
+                                    <th>Variação</th>
+                                    <th>Valor Investido</th>
+                                    <th>Valor Atual</th>
+                                    <th>Lucro/Prejuízo</th>
+                                    <th>% Carteira</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {investimentos.map(inv => {
+                                    const precoAtual = obterPrecoAtual(inv)
+                                    const valorInvestido = parseFloat(inv.quantidade) * parseFloat(inv.preco_medio) + parseFloat(inv.taxas || 0)
+                                    const valorAtual = parseFloat(inv.quantidade) * precoAtual
+                                    const lucro = valorAtual - valorInvestido
+                                    const rentabilidade = valorInvestido > 0 ? ((lucro / valorInvestido) * 100).toFixed(2) : 0
+                                    const variacaoTempoReal = obterDadosTempoReal(inv.ticker)?.variacao
 
-                                                    return (
-                                                        <tr key={inv.id}>
-                                                            <td data-label="Ticker"><strong>{inv.ticker}</strong></td>
-                                                            <td data-label="Tipo">{labelTipo}</td>
-                                                            <td data-label="Quantidade">{inv.quantidade}</td>
-                                                            <td data-label="Preço Médio">{formatarMoeda(inv.preco_medio)}</td>
-                                                            <td data-label="Preço Atual">
-                                                                {formatarMoeda(precoAtual)}
-                                                                {(obterDadosTempoReal(inv.ticker)?.preco || inv.preco_atual) && (
-                                                                    <span style={{ fontSize: "10px", marginLeft: "4px", color: "#10b981" }} title="Preço atualizado via API">✓</span>
-                                                                )}
-                                                            </td>
-                                                            <td data-label="Variação" className={variacaoTempoReal ? (variacaoTempoReal >= 0 ? "positive" : "negative") : ""}>
-                                                                {typeof variacaoTempoReal === "number" && !Number.isNaN(variacaoTempoReal)
-                                                                    ? `${variacaoTempoReal >= 0 ? "+" : ""}${variacaoTempoReal.toFixed(2)}%`
-                                                                    : "—"}
-                                                            </td>
-                                                            <td data-label="Valor Investido">{formatarMoeda(valorInvestido)}</td>
-                                                            <td data-label="Valor Atual">{formatarMoeda(valorAtual)}</td>
-                                                            <td data-label="Lucro/Prejuízo" className={lucro >= 0 ? "positive" : "negative"}>
-                                                                {formatarMoeda(lucro)} ({rentabilidade}%)
-                                                            </td>
-                                                            <td data-label="% Carteira">{percentualCarteira(inv)}%</td>
-                                                            <td data-label="Ações">
-                                                                <button className="btn-edit" onClick={() => handleEdit(inv)}>✏️</button>
-                                                                <button className="btn-delete" onClick={() => handleDelete(inv.id)}>🗑️</button>
-                                                            </td>
-                                                        </tr>
-                                                    )
-                                                })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )
-                        })
+                                    return (
+                                        <tr key={inv.id}>
+                                            <td><strong>{inv.ticker}</strong></td>
+                                            <td>{TIPOS_ATIVO.find(t => t.value === inv.tipo_ativo)?.label || inv.tipo_ativo}</td>
+                                            <td>{inv.quantidade}</td>
+                                            <td>{formatarMoeda(inv.preco_medio)}</td>
+                                            <td>
+                                                {formatarMoeda(precoAtual)}
+                                                {(obterDadosTempoReal(inv.ticker)?.preco || inv.preco_atual) && (
+                                                    <span style={{ fontSize: "10px", marginLeft: "4px", color: "#10b981" }} title="Preço atualizado via API">✓</span>
+                                                )}
+                                            </td>
+                                            <td className={variacaoTempoReal ? (variacaoTempoReal >= 0 ? "positive" : "negative") : ""}>
+                                                {typeof variacaoTempoReal === "number" && !Number.isNaN(variacaoTempoReal)
+                                                    ? `${variacaoTempoReal >= 0 ? "+" : ""}${variacaoTempoReal.toFixed(2)}%`
+                                                    : "—"}
+                                            </td>
+                                            <td>{formatarMoeda(valorInvestido)}</td>
+                                            <td>{formatarMoeda(valorAtual)}</td>
+                                            <td className={lucro >= 0 ? "positive" : "negative"}>
+                                                {formatarMoeda(lucro)} ({rentabilidade}%)
+                                            </td>
+                                            <td>{percentualCarteira(inv)}%</td>
+                                            <td>
+                                                <button className="btn-edit" onClick={() => handleEdit(inv)}>✏️</button>
+                                                <button className="btn-delete" onClick={() => handleDelete(inv.id)}>🗑️</button>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
                     )}
                 </div>
 
@@ -1212,13 +1222,13 @@ export default function Investimento(){
                                         const quantoInvestir = parseFloat(resultado.quantoInvestir) || 0
                                         return (
                                             <tr key={resultado.tipo} className={quantoInvestir === 0 && percentualAtual > percentualIdeal ? "acima-ideal" : ""}>
-                                                <td data-label="Tipo de Ativo">
+                                                <td>
                                                     <strong>{resultado.label}</strong>
                                                 </td>
-                                                <td data-label="Percentual Atual">{isNaN(percentualAtual) ? "0.00" : percentualAtual.toFixed(2)}%</td>
-                                                <td data-label="Percentual Ideal">{isNaN(percentualIdeal) ? "0.00" : percentualIdeal.toFixed(2)}%</td>
-                                                <td data-label="Valor Atual">{formatarMoeda(resultado.valorAtual || 0)}</td>
-                                                <td data-label="Quanto Investir" className={quantoInvestir > 0 ? "valor-investir" : "sem-investimento"}>
+                                                <td>{isNaN(percentualAtual) ? "0.00" : percentualAtual.toFixed(2)}%</td>
+                                                <td>{isNaN(percentualIdeal) ? "0.00" : percentualIdeal.toFixed(2)}%</td>
+                                                <td>{formatarMoeda(resultado.valorAtual || 0)}</td>
+                                                <td className={quantoInvestir > 0 ? "valor-investir" : "sem-investimento"}>
                                                     {formatarMoeda(quantoInvestir)}
                                                 </td>
                                             </tr>

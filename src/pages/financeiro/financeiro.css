@@ -9,8 +9,6 @@
   background: #f8fafc;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: calc(100vh - 64px);
-  width: 100%;
-  box-sizing: border-box;
 }
 
 /* =======================
@@ -670,7 +668,6 @@
   .financeiro {
     margin-left: 0;
     padding: clamp(18px, 4vw, 30px) clamp(16px, 4vw, 24px);
-    width: 100%;
   }
 
   .title-container {
@@ -752,15 +749,6 @@
 @media screen and (max-width: 600px) {
   .financeiro {
     padding: clamp(16px, 5vw, 22px) clamp(12px, 5vw, 18px);
-  }
-
-  .title-container {
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .tabs-financeiro {
-    justify-content: space-between;
   }
 
   .status-table {
@@ -855,25 +843,6 @@
     max-width: 95vw;
     max-height: 95vh;
     z-index: 10000;
-  }
-
-  .form-row,
-  .form-inline {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .form-inline > * {
-    width: 100%;
-  }
-
-  .form-group-button {
-    align-items: stretch;
-  }
-
-  .cartao-total {
-    flex-direction: column;
-    align-items: flex-start;
   }
 
   .modal-content h2 {
