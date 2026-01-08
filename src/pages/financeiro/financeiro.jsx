@@ -1,9 +1,30 @@
 import "./financeiro.css"
 import Header from "../../componentes/header/header"
 import Sidebar from "../../componentes/side-bar/side-bar"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { supabase } from "../../lib/supabase"
 import { useAuth } from "../../contexts/AuthContext"
+
+// Identificar se uma despesa é fixa
+const isContaFixa = (descricao) => {
+    if (!descricao) return false
+    
+    const desc = descricao.toLowerCase()
+    
+    // Verifica se foi criada como conta fixa (tem padrão " - MM/YYYY")
+    if (desc.match(/\s-\s\d{2}\/\d{4}$/)) {
+        return true
+    }
+    
+    // Verifica palavras-chave de contas fixas
+    const palavrasFixas = [
+        'luz', 'água', 'agua', 'internet', 'plano', 'netflix', 'spotify', 
+        'aluguel', 'ipva', 'seguro', 'financiamento', 'condomínio', 'condominio',
+        'telefone', 'celular', 'tv', 'streaming', 'assinatura', 'mensalidade fixa'
+    ]
+    
+    return palavrasFixas.some(palavra => desc.includes(palavra))
+}
 
 export default function Financeiro(){
     const { user } = useAuth()
@@ -23,7 +44,7 @@ export default function Financeiro(){
         vencimento: "",
         status: "pendente",
         parcelado: false,
-        quantidadeParcelas: 1,
+        quantidadeParcelas: "",
         contaFixa: false
     })
     const [tabAtiva, setTabAtiva] = useState("financeiro")
@@ -229,6 +250,19 @@ export default function Financeiro(){
         return new Date(data).toLocaleDateString('pt-BR')
     }
 
+    // Separar e ordenar despesas (fixas primeiro, depois variáveis, ambas em ordem alfabética)
+    const despesasOrdenadas = useMemo(() => {
+        const despesas = financeiro.filter(item => item.tipo === "despesa")
+        
+        const fixas = despesas.filter(item => isContaFixa(item.descricao))
+            .sort((a, b) => a.descricao.localeCompare(b.descricao, 'pt-BR'))
+        
+        const variaveis = despesas.filter(item => !isContaFixa(item.descricao))
+            .sort((a, b) => a.descricao.localeCompare(b.descricao, 'pt-BR'))
+        
+        return { fixas, variaveis }
+    }, [financeiro])
+
     // Adicionar novo registro
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -239,6 +273,15 @@ export default function Financeiro(){
         }
 
         try {
+            // Validação para despesas parceladas
+            if (formData.tipo === "despesa" && formData.parcelado) {
+                const qtdParcelas = parseInt(formData.quantidadeParcelas)
+                if (!formData.quantidadeParcelas || isNaN(qtdParcelas) || qtdParcelas < 2) {
+                    alert("Para despesas parceladas, informe uma quantidade válida de parcelas (mínimo 2)")
+                    return
+                }
+            }
+
             // Se for receita, status é sempre "pago" (recebido)
             // Se for despesa, calcular status baseado na data
             let statusFinal = formData.tipo === "receita" ? "pago" : calcularStatus(formData.vencimento, formData.status)
@@ -268,19 +311,20 @@ export default function Financeiro(){
                     .insert(registrosFixos)
 
                 if (error) throw error
-            } else if (formData.parcelado && formData.quantidadeParcelas > 1 && formData.tipo === "despesa") {
+            } else if (formData.parcelado && formData.quantidadeParcelas && parseInt(formData.quantidadeParcelas) >= 2 && formData.tipo === "despesa") {
                 const registros = []
-                const valorParcela = parseFloat(formData.valor) / formData.quantidadeParcelas
+                const qtdParcelas = parseInt(formData.quantidadeParcelas)
+                const valorParcela = parseFloat(formData.valor) / qtdParcelas
                 const dataBase = parseDateOnly(formData.vencimento)
                 
-                for (let i = 0; i < formData.quantidadeParcelas; i++) {
+                for (let i = 0; i < qtdParcelas; i++) {
                     const dataParcela = new Date(dataBase)
                     dataParcela.setMonth(dataBase.getMonth() + i)
                     
                     registros.push({
                         user_id: user.id,
                         tipo: formData.tipo,
-                        descricao: `${formData.descricao} (${i + 1}/${formData.quantidadeParcelas})`,
+                        descricao: `${formData.descricao} (${i + 1}/${qtdParcelas})`,
                         valor: Math.round(valorParcela * 100) / 100, // Arredonda para 2 casas decimais
                         vencimento: dataParcela.toISOString().split('T')[0],
                         status: calcularStatus(dataParcela.toISOString().split('T')[0], formData.status)
@@ -316,7 +360,7 @@ export default function Financeiro(){
                 vencimento: "",
                 status: "pendente",
                 parcelado: false,
-                quantidadeParcelas: 1,
+                quantidadeParcelas: "",
                 contaFixa: false
             })
             setShowModal(false)
@@ -738,15 +782,79 @@ export default function Financeiro(){
 
                 {tabAtiva === "financeiro" && (
                     <>
-                        {/* Seção de Despesas */}
+                        {/* Seção de Despesas Fixas */}
+                        {despesasOrdenadas.fixas.length > 0 && (
+                            <div className="secao-tipo-financeiro">
+                                <h2 className="titulo-secao-tipo">Despesas Fixas</h2>
+                                <section className="section-status">
+                                    <div>
+                                        <table className="status-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Descrição</th>
+                                                    <th>Valor</th>
+                                                    <th>Vencimento</th>
+                                                    <th>Status</th>
+                                                    <th>Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {despesasOrdenadas.fixas.map(item => {
+                                                    const statusCalculado = getStatusComAtraso(item)
+                                                    return (
+                                                        <tr key={item.id}>
+                                                            <td data-label="Descrição">{item.descricao}</td>
+                                                            <td data-label="Valor">{formatarMoeda(item.valor)}</td>
+                                                            <td data-label="Vencimento">{formatarData(item.vencimento)}</td>
+                                                            <td data-label="Status">
+                                                                <select 
+                                                                    value={statusCalculado}
+                                                                    onChange={(e) => handleStatusChange(item.id, e.target.value)}
+                                                                    className={`status-select status-${statusCalculado}`}
+                                                                >
+                                                                    <option value="pendente">Pendente</option>
+                                                                    <option value="atrasado">Atrasado</option>
+                                                                    <option value="pago">Pago</option>
+                                                                </select>
+                                                            </td>
+                                                            <td data-label="Ações">
+                                                                <div className="acoes-btns">
+                                                                    <button 
+                                                                        className="btn-editar"
+                                                                        onClick={() => handleEditOpen(item)}
+                                                                        title="Editar"
+                                                                    >
+                                                                        Editar
+                                                                    </button>
+                                                                    <button 
+                                                                        className="btn-deletar"
+                                                                        onClick={() => handleDelete(item.id)}
+                                                                    >
+                                                                        Excluir
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </section>
+                            </div>
+                        )}
+
+                        {/* Seção de Despesas Variáveis */}
                         <div className="secao-tipo-financeiro">
-                            <h2 className="titulo-secao-tipo">Despesas</h2>
+                            <h2 className="titulo-secao-tipo">Despesas Variáveis</h2>
                             <section className="section-status">
                                 <div>
                                     {loading ? (
                                         <p>Carregando...</p>
-                                    ) : financeiro.filter(item => item.tipo === "despesa").length === 0 ? (
+                                    ) : despesasOrdenadas.variaveis.length === 0 && despesasOrdenadas.fixas.length === 0 ? (
                                         <p className="sem-dados">Nenhuma despesa encontrada. Clique em "Adicionar" para começar.</p>
+                                    ) : despesasOrdenadas.variaveis.length === 0 ? (
+                                        <p className="sem-dados">Nenhuma despesa variável encontrada.</p>
                                     ) : (
                                         <table className="status-table">
                                             <thead>
@@ -759,7 +867,7 @@ export default function Financeiro(){
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {financeiro.filter(item => item.tipo === "despesa").map(item => {
+                                                {despesasOrdenadas.variaveis.map(item => {
                                                     const statusCalculado = getStatusComAtraso(item)
                                                     return (
                                                         <tr key={item.id}>
@@ -825,7 +933,10 @@ export default function Financeiro(){
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {financeiro.filter(item => item.tipo === "receita").map(item => (
+                                                {financeiro
+                                                    .filter(item => item.tipo === "receita")
+                                                    .sort((a, b) => a.descricao.localeCompare(b.descricao, 'pt-BR'))
+                                                    .map(item => (
                                                     <tr key={item.id}>
                                                         <td data-label="Descrição">{item.descricao}</td>
                                                         <td data-label="Valor">{formatarMoeda(item.valor)}</td>
@@ -1134,11 +1245,14 @@ export default function Financeiro(){
                                                     min="2"
                                                     max="48"
                                                     value={formData.quantidadeParcelas}
-                                                    onChange={(e) => setFormData({...formData, quantidadeParcelas: parseInt(e.target.value) || 1})}
+                                                    onChange={(e) => {
+                                                        const valor = e.target.value
+                                                        setFormData({...formData, quantidadeParcelas: valor === "" ? "" : parseInt(valor) || ""})
+                                                    }}
                                                     required
-                                                    placeholder="Ex: 10"
+                                                    placeholder="Ex: 5, 10, 12..."
                                                 />
-                                                {formData.valor && formData.parcelado && (
+                                                {formData.valor && formData.parcelado && formData.quantidadeParcelas && parseInt(formData.quantidadeParcelas) >= 2 && (
                                                     <div style={{ 
                                                         marginTop: "8px",
                                                         padding: "12px", 
@@ -1149,7 +1263,7 @@ export default function Financeiro(){
                                                         fontWeight: "600",
                                                         border: "1px solid #bfdbfe"
                                                     }}>
-                                                        Valor da parcela: {formatarMoeda(parseFloat(formData.valor || 0) / formData.quantidadeParcelas)}
+                                                        Valor da parcela: {formatarMoeda(parseFloat(formData.valor || 0) / parseInt(formData.quantidadeParcelas))}
                                                     </div>
                                                 )}
                                             </div>

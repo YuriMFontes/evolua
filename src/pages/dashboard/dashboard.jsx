@@ -310,7 +310,18 @@ export default function Dashboard(){
 
     const { receitas, despesas } = calcularTotais()
 
-    // Calcular valores dos investimentos
+    // Função para obter preço atual (mesma lógica da aba de investimentos)
+    const obterPrecoAtual = useCallback((inv) => {
+        // Para renda fixa, usa o preço médio (valor investido)
+        if (inv.tipo_ativo === "renda_fixa") {
+            return parseFloat(inv.preco_medio || inv.preco_atual || 1000)
+        }
+        
+        // Para outros tipos, usa preco_atual ou preco_medio como fallback
+        return parseFloat(inv.preco_atual || inv.preco_medio)
+    }, [])
+
+    // Calcular valores dos investimentos (mesma lógica da aba de investimentos)
     const calcularInvestimentos = useMemo(() => {
         const valorTotalInvestido = investimentos.reduce((sum, inv) => {
             const quantidade = parseFloat(inv.quantidade) || 0
@@ -329,9 +340,9 @@ export default function Dashboard(){
 
         const valorAtualCarteira = investimentos.reduce((sum, inv) => {
             const quantidade = parseFloat(inv.quantidade) || 0
-            const precoAtual = parseFloat(inv.preco_atual || inv.preco_medio)
+            const precoAtual = obterPrecoAtual(inv)
 
-            // Para ETF, converte de USD para BRL
+            // Para ETF, converte de USD para BRL usando a cotação atual do dólar
             if (inv.tipo_ativo === "etf" && cotacaoDolar && cotacaoDolar > 0) {
                 const valorAtualBRL = quantidade * precoAtual * cotacaoDolar
                 return sum + valorAtualBRL
@@ -353,7 +364,7 @@ export default function Dashboard(){
             rentabilidadePercentual,
             totalAtivos: investimentos.length
         }
-    }, [investimentos, cotacaoDolar])
+    }, [investimentos, cotacaoDolar, obterPrecoAtual])
 
     // Preparar dados do gráfico
     const chartData = useMemo(() => {
