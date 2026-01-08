@@ -2,12 +2,19 @@
 main {
     display: flex;
     min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height para mobile */
     background: linear-gradient(120deg, #e0eaff, #f8f2ff, #e8f6ff);
     background-size: 400% 400%;
     animation: gradientShift 15s ease infinite;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
     color: #1c1c1e;
     overflow-x: hidden;
+    /* Melhorar scroll no iOS */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    /* Suporte para safe area */
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 @keyframes gradientShift {
@@ -457,14 +464,30 @@ html.dark-mode .saude-resumo-value {
     color: #f1f5f9;
 }
 
+/* ======== MOBILE RESPONSIVE ======== */
+@media screen and (max-width: 1000px) {
+    .dashboard {
+        margin-left: 0;
+        padding-top: calc(var(--header-height, 64px) + env(safe-area-inset-top, 0px) + 16px);
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+        padding-bottom: max(16px, env(safe-area-inset-bottom));
+    }
+}
+
 @media screen and (max-width: 480px) {
     .dashboard {
-        padding: clamp(16px, 4vw, 20px);
+        padding: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+        padding-top: calc(var(--header-height, 64px) + env(safe-area-inset-top, 0px) + 12px);
+        padding-bottom: max(16px, env(safe-area-inset-bottom));
         width: 100%;
         max-width: 100%;
         margin-left: 0;
         margin-right: 0;
         box-sizing: border-box;
+        /* Melhorar scroll no iOS */
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
     }
 
     .title-dashboard {
@@ -472,10 +495,11 @@ html.dark-mode .saude-resumo-value {
         text-align: center;
         width: 100%;
         padding: 0;
+        margin-bottom: 16px;
     }
 
     .content-dashboard {
-        gap: clamp(12px, 3vw, 16px);
+        gap: 12px;
         grid-template-columns: 1fr;
         width: 100%;
         margin-left: 0;
@@ -487,11 +511,14 @@ html.dark-mode .saude-resumo-value {
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
+        /* Touch target melhor */
+        min-height: 100px;
+        padding: 16px;
     }
 
     .dashboard-info {
-        padding: clamp(14px, 3vw, 18px);
-        gap: clamp(12px, 3vw, 16px);
+        padding: 16px;
+        gap: 16px;
         width: 100%;
         max-width: 100%;
         margin-left: 0;
@@ -502,7 +529,7 @@ html.dark-mode .saude-resumo-value {
     .dashboard-container,
     .dashboard-container-saude {
         min-height: 250px;
-        padding: clamp(14px, 3vw, 16px);
+        padding: 16px;
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
@@ -510,23 +537,42 @@ html.dark-mode .saude-resumo-value {
 
     .chart-container {
         height: 220px;
-        padding: 5px;
+        padding: 8px;
+        /* Melhorar touch no gráfico */
+        touch-action: pan-x pan-y;
     }
 
     .transacoes-list {
-        max-height: 200px;
+        max-height: 300px;
+        /* Melhorar scroll */
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
     }
 
     .transacao-item {
-        padding: 8px 10px;
+        padding: 12px;
         flex-wrap: wrap;
+        /* Touch target mínimo */
+        min-height: 44px;
+        /* Melhor feedback */
+        -webkit-tap-highlight-color: rgba(74, 108, 247, 0.1);
     }
 
     .transacao-valor {
         width: 100%;
-        margin-top: 6px;
+        margin-top: 8px;
         text-align: right;
-        font-size: 12px;
+        font-size: 14px;
+    }
+
+    /* Botões com touch targets maiores */
+    .btn-editar,
+    .btn-deletar {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 10px 14px;
+        -webkit-tap-highlight-color: rgba(74, 108, 247, 0.2);
+        touch-action: manipulation;
     }
 }
 

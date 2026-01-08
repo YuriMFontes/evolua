@@ -211,6 +211,7 @@ html.dark-mode .side-bar::-webkit-scrollbar-thumb:hover {
     .side-bar {
         top: 0;
         height: 100vh;
+        height: 100dvh; /* Dynamic viewport height para mobile */
         width: min(85vw, 320px);
         border-right: none;
         border-radius: 0;
@@ -219,6 +220,12 @@ html.dark-mode .side-bar::-webkit-scrollbar-thumb:hover {
         pointer-events: none;
         visibility: hidden;
         box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+        /* Suporte para safe area do iPhone */
+        padding-top: env(safe-area-inset-top, 0);
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        /* Melhorar scroll no iOS */
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
     }
 
     .side-bar--open {
@@ -231,18 +238,58 @@ html.dark-mode .side-bar::-webkit-scrollbar-thumb:hover {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(248, 250, 252, 0.8);
+        background: rgba(248, 250, 252, 0.9);
         backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         border: 1px solid rgba(226, 232, 240, 0.5);
         color: #64748b;
-        width: 36px;
-        height: 36px;
+        /* Touch target mínimo 44x44px */
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        /* Melhor feedback */
+        -webkit-tap-highlight-color: rgba(74, 108, 247, 0.2);
+        touch-action: manipulation;
+    }
+
+    .side-bar__nav {
+        padding: 16px 12px;
+        gap: 8px;
+    }
+
+    .section {
+        /* Touch target mínimo 44px de altura */
+        min-height: 44px;
+        padding: 14px 16px;
+        font-size: 16px;
+        /* Melhor feedback visual */
+        -webkit-tap-highlight-color: rgba(74, 108, 247, 0.15);
+        touch-action: manipulation;
+        /* Prevenir seleção acidental */
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .section:active {
+        transform: scale(0.98);
+        background: rgba(148, 163, 184, 0.15);
     }
 
     html.dark-mode .side-bar__close {
-        background: rgba(30, 41, 59, 0.8);
+        background: rgba(30, 41, 59, 0.9);
         border-color: rgba(51, 65, 85, 0.5);
         color: #cbd5e1;
+    }
+}
+
+/* ======== IPHONE SPECIFIC ======== */
+@supports (padding: max(0px)) {
+    @media screen and (max-width: 1000px) {
+        .side-bar {
+            padding-left: max(0px, env(safe-area-inset-left));
+            padding-right: max(0px, env(safe-area-inset-right));
+        }
     }
 }
 

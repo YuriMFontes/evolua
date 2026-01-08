@@ -7,6 +7,16 @@
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
+/* ======== MOBILE OPTIMIZATIONS ======== */
+html {
+  /* Prevenir zoom em inputs no iOS */
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Suporte para safe area do iPhone (notch) */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -16,6 +26,114 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: #f5f7fa;
   color: #1f2937;
+  /* Melhorar scroll no iOS */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  /* Prevenir seleção acidental em mobile */
+  -webkit-tap-highlight-color: rgba(74, 108, 247, 0.1);
+  /* Suporte para safe area */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Prevenir zoom em inputs no iOS */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="month"],
+select,
+textarea {
+  font-size: 16px !important; /* iOS não faz zoom se font-size >= 16px */
+}
+
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="date"],
+  input[type="month"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ======== MOBILE TOUCH TARGETS ======== */
+/* Garantir que todos os botões tenham touch target mínimo de 44x44px no mobile */
+@media screen and (max-width: 1000px) {
+  button,
+  .btn-primary,
+  .btn-secondary,
+  .btn-salvar,
+  .btn-cancelar,
+  .btn-deletar,
+  .btn-editar,
+  .btn-adicionar,
+  a[role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    /* Melhor feedback visual */
+    -webkit-tap-highlight-color: rgba(74, 108, 247, 0.2);
+    touch-action: manipulation;
+    /* Prevenir seleção acidental */
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Inputs e selects também precisam de altura adequada */
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    padding: 12px 16px;
+    /* Melhor feedback */
+    -webkit-tap-highlight-color: rgba(74, 108, 247, 0.1);
+  }
+
+  /* Links também precisam de touch target adequado */
+  a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    -webkit-tap-highlight-color: rgba(74, 108, 247, 0.15);
+  }
+}
+
+/* ======== PREVENIR ZOOM EM INPUTS NO iOS ======== */
+@supports (-webkit-touch-callout: none) {
+  /* iOS específico */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="date"],
+  input[type="month"],
+  input[type="tel"],
+  input[type="url"],
+  select,
+  textarea {
+    font-size: 16px !important;
+    transform: scale(1);
+  }
+}
+
+/* ======== MELHORAR SCROLL NO MOBILE ======== */
+@media screen and (max-width: 1000px) {
+  * {
+    /* Melhorar scroll no iOS */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevenir pull-to-refresh acidental em algumas áreas */
+  main,
+  .dashboard,
+  .financeiro,
+  .investimento-container {
+    overscroll-behavior-y: contain;
+  }
 }
 
 code {
