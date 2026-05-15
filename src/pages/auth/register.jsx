@@ -143,7 +143,10 @@ export default function Register() {
                             <label className="auth-checkbox">
                                 <input type="checkbox" required disabled={loading} />
                                 <span className="auth-checkmark"></span>
-                                Aceito os <a href="#" className="auth-link">Termos de Uso</a> e <a href="#" className="auth-link">Política de Privacidade</a>
+                                Aceito os{" "}
+                                <button type="button" className="auth-link auth-link--text" onClick={(e) => e.stopPropagation()}>Termos de Uso</button>
+                                {" "}e{" "}
+                                <button type="button" className="auth-link auth-link--text" onClick={(e) => e.stopPropagation()}>Política de Privacidade</button>
                             </label>
                         </div>
 

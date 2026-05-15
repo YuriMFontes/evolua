@@ -96,9 +96,9 @@ export default function Login() {
                                 <span className="auth-checkmark"></span>
                                 Lembrar de mim
                             </label>
-                            <a href="#" className="auth-link">
+                            <button type="button" className="auth-link auth-link--text">
                                 Esqueceu a senha?
-                            </a>
+                            </button>
                         </div>
 
                         <button type="submit" className="auth-button" disabled={loading}>

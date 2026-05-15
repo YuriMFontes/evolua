@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo, Fragment } from "react"
 import { supabase } from "../../lib/supabase"
 import { useAuth } from "../../contexts/AuthContext"
 import { buscarPrecosMultiplos, buscarPrecoAtual } from "../../lib/yahoo-finance"
-import { buscarPrecoRendaFixa, listarTitulosRendaFixa } from "../../lib/renda-fixa"
+import { buscarPrecoRendaFixa } from "../../lib/renda-fixa"
 import { buscarPrecoCripto, buscarPrecosCriptoMultiplos } from "../../lib/cripto"
 import { 
     Doughnut
@@ -264,7 +264,7 @@ export default function Investimento(){
         } finally {
             setLoading(false)
         }
-    }, [user, atualizarPrecosInvestimentos])
+    }, [user])
 
     useEffect(() => {
         fetchInvestimentos()
@@ -500,7 +500,7 @@ export default function Investimento(){
         } finally {
             setCotacaoLoading(false)
         }
-    }, [formData.ticker, formData.tipo_ativo])
+    }, [formData.ticker, formData.tipo_ativo, buscarCotacaoDolar, cotacaoDolar])
 
 
 

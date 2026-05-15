@@ -1,6 +1,6 @@
 import "./side-bar.css"
 import { NavLink, useLocation } from "react-router-dom"
-import { useEffect, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 
 export default function Sidebar({ isOpen = false, onNavigate }) {
     const location = useLocation()
@@ -8,11 +8,11 @@ export default function Sidebar({ isOpen = false, onNavigate }) {
     const touchStartX = useRef(0)
     const touchStartY = useRef(0)
     
-    const handleNavigate = () => {
+    const handleNavigate = useCallback(() => {
         if (typeof onNavigate === "function") {
             onNavigate()
         }
-    }
+    }, [onNavigate])
 
     // Suporte para swipe gesture para fechar sidebar no mobile
     useEffect(() => {
@@ -45,7 +45,7 @@ export default function Sidebar({ isOpen = false, onNavigate }) {
             sidebar.removeEventListener('touchstart', handleTouchStart)
             sidebar.removeEventListener('touchmove', handleTouchMove)
         }
-    }, [isOpen])
+    }, [isOpen, handleNavigate])
 
     const isActive = (path) => {
         return location.pathname === path

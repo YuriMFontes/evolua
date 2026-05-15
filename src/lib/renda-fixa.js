@@ -8,9 +8,6 @@
  * 3. Brapi (API brasileira) - Fallback para outros títulos
  */
 
-// Importa Brapi para buscar dados de renda fixa
-import { buscarPrecoAtual as buscarPrecoBrapi } from './brapi'
-
 // Mapeamento de códigos de renda fixa
 const CODIGOS_RENDA_FIXA = {
     // Tesouro Direto
@@ -115,28 +112,6 @@ const buscarViaBrapi = async (codigo) => {
         if (!error.message.includes('HTML') && !error.message.includes('endpoint')) {
             console.warn('[Renda Fixa] Erro ao buscar via Brapi:', error.message)
         }
-        return null
-    }
-}
-
-/**
- * Busca dados via API alternativa (Status Invest ou similar)
- * @param {string} codigo - Código do título
- * @returns {Promise<Object>} - Dados do título
- */
-const buscarViaAPIAlternativa = async (codigo) => {
-    try {
-        // Usa uma API alternativa mais confiável
-        // API do Status Invest (pode ter dados de renda fixa)
-        const proxy = "https://api.allorigins.win/raw?url="
-        const urlAlternativa = `https://statusinvest.com.br/home/mainsearchquery?q=${encodeURIComponent(codigo)}`
-        const url = `${proxy}${encodeURIComponent(urlAlternativa)}`
-        
-        console.log(`[Renda Fixa] Tentando API alternativa para: ${codigo}`)
-        
-        // Por enquanto, retorna null (pode ser implementado depois)
-        return null
-    } catch (error) {
         return null
     }
 }
@@ -339,7 +314,6 @@ const buscarTesouroDireto = async (codigo) => {
                 }
                 
                 let data
-                const contentType = response.headers.get('content-type')
                 
                 // O proxy pode retornar como texto
                 const text = await response.text()

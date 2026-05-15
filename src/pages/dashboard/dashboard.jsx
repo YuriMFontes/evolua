@@ -1,7 +1,6 @@
 import "./dashboard.css"
 import Sidebar from "../../componentes/side-bar/side-bar"
 import Header from "../../componentes/header/header"
-import { useNavigate } from "react-router-dom"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { supabase } from "../../lib/supabase"
 import { useAuth } from "../../contexts/AuthContext"
@@ -55,7 +54,6 @@ const categorizarDespesa = (descricao) => {
 }
 
 export default function Dashboard(){
-    const navigate = useNavigate();
     const { user } = useAuth()
     const [isSidebarOpen, setSidebarOpen] = useState(false)
     const [financeiro, setFinanceiro] = useState([])

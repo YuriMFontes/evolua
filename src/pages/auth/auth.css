@@ -188,6 +188,18 @@
     color: #9b5de5;
 }
 
+button.auth-link,
+.auth-link--text {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    cursor: pointer;
+    display: inline;
+    text-align: inherit;
+}
+
 .auth-link-primary {
     font-weight: 600;
     margin-left: 4px;
